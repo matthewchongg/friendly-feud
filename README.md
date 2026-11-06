@@ -90,39 +90,6 @@ Click **"📥 Download Sample Spreadsheet"** inside the Question Manager modal i
 | **The Steal** | Opposing team gets **15 seconds group conferral**; captain presents answer. | 15s countdown timer + Steal outcome buttons. |
 | **Winning** | Points tallied across all rounds. Highest cumulative score wins! | Cumulative score tracker + Grand celebration fanfare. |
 
----
-
-## 🚀 How to Host on GitHub Pages (Free, in 2 Minutes)
-
-1. Create a new repository on [GitHub.com](https://github.com) (e.g. `family-feud`).
-2. Upload all the files in this folder to the repository:
-   ```
-   ├── index.html
-   ├── board.html
-   ├── admin.html
-   ├── buzzer.html
-   ├── css/
-   ├── js/
-   └── .github/
-   ```
-3. In your GitHub repository, click on **Settings** (top tab).
-4. On the left sidebar, click **Pages**.
-5. Under **Build and deployment**:
-   - **Source**: Select `Deploy from a branch`.
-   - **Branch**: Select `main` and folder `/(root)`.
-   - Click **Save**.
-6. Within ~60 seconds, GitHub Pages will provide your live URL:
-   `https://<your-username>.github.io/<repo-name>/`
-
----
-
-## 💻 How to Run Locally
-
-You can open the HTML files directly in any modern browser:
-- Open `index.html` to access the game launcher.
-- Open `admin.html` on your laptop screen.
-- Open `board.html` on your projector or secondary monitor.
-- Open `buzzer.html` on players' phones.
 
 ---
 
