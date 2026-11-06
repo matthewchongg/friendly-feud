@@ -1,0 +1,488 @@
+/* Family Feud Big Screen / Projector Game Board */
+
+.board-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 16px 28px;
+  background: radial-gradient(ellipse at center, #112866 0%, #061129 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Confetti Canvas overlay */
+#confettiCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* Top Stage HUD */
+.stage-hud {
+  display: grid;
+  grid-template-columns: 320px 1fr 320px;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* Team Scoreboard Box */
+.team-scoreboard {
+  background: #091a44;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  text-align: center;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+
+.team-scoreboard.active-control {
+  border-color: var(--gold-border);
+  box-shadow: 0 0 25px rgba(246, 185, 59, 0.65);
+  transform: translateY(-2px);
+}
+
+.team-scoreboard.team-1.active-control {
+  border-color: var(--team1-color);
+  box-shadow: 0 0 30px var(--team1-glow);
+}
+
+.team-scoreboard.team-2.active-control {
+  border-color: var(--team2-color);
+  box-shadow: 0 0 30px var(--team2-glow);
+}
+
+.team-name {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 5px rgba(0,0,0,0.7);
+}
+
+.team-1 .team-name { color: #2ecc71; }
+.team-2 .team-name { color: #ff5252; }
+
+.team-score {
+  font-family: var(--font-display);
+  font-size: 3.6rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 3px 12px rgba(0,0,0,0.9);
+}
+
+.turn-pill {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 14px;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+}
+
+.active-control .turn-pill {
+  background: var(--gold-primary);
+  color: #071330;
+  box-shadow: 0 0 12px rgba(246, 185, 59, 0.6);
+}
+
+/* Center Stage: Bank & Round Info */
+.stage-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.round-pill-badge {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #ffeaa7;
+  background: rgba(12, 36, 97, 0.9);
+  border: 1px solid var(--gold-border);
+  padding: 6px 22px;
+  border-radius: 20px;
+  box-shadow: 0 0 14px rgba(241, 196, 15, 0.35);
+}
+
+.bank-podium {
+  background: linear-gradient(180deg, #183377 0%, #0a1c46 100%);
+  border: 4px solid var(--gold-border);
+  border-radius: var(--radius-md);
+  padding: 8px 40px;
+  text-align: center;
+  min-width: 240px;
+  box-shadow: 0 0 28px rgba(246, 185, 59, 0.5), inset 0 0 15px rgba(246, 185, 59, 0.2);
+}
+
+.bank-label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold-glow);
+  font-family: var(--font-display);
+}
+
+.bank-score {
+  font-family: var(--font-display);
+  font-size: 3.8rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 3px 15px rgba(246, 185, 59, 0.8);
+}
+
+/* Question Banner */
+.question-marquee {
+  background: linear-gradient(90deg, transparent 0%, rgba(12, 36, 97, 0.95) 15%, rgba(12, 36, 97, 0.95) 85%, transparent 100%);
+  border-top: 2px solid rgba(246, 185, 59, 0.5);
+  border-bottom: 2px solid rgba(246, 185, 59, 0.5);
+  padding: 12px 28px;
+  margin-bottom: 22px;
+  text-align: center;
+}
+
+.question-text {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+
+/* Iconic Feud Board Arena */
+.feud-board-outer {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.feud-board-frame {
+  background: #061129;
+  border: 8px solid #f6b93b;
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: 0 0 45px rgba(246, 185, 59, 0.4), inset 0 0 30px rgba(0, 0, 0, 0.9);
+  width: 100%;
+  max-width: 1150px;
+  position: relative;
+}
+
+/* Marquee bulbs rim */
+.feud-board-frame::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  right: -14px;
+  bottom: -14px;
+  border: 3px dashed rgba(255, 234, 167, 0.6);
+  border-radius: 34px;
+  pointer-events: none;
+}
+
+.feud-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 24px;
+}
+
+/* 3D Flip Card Slots */
+.card-slot {
+  height: 80px;
+  perspective: 1000px;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.65s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.card-slot.revealed .card-inner {
+  transform: rotateX(180deg);
+}
+
+/* Card Front: Unrevealed slot with big rank number */
+.card-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.6), 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.card-front {
+  background: linear-gradient(180deg, #1b3780 0%, #0d1e4c 100%);
+  border: 3px solid #f6b93b;
+  justify-content: center;
+}
+
+.slot-number-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #f6b93b 0%, #d48b14 100%);
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 900;
+  color: #071330;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.5);
+}
+
+/* Card Back: Revealed Answer + Points */
+.card-back {
+  background: linear-gradient(180deg, #22439c 0%, #12245c 100%);
+  border: 3px solid #ffeaa7;
+  transform: rotateX(180deg);
+  justify-content: space-between;
+  padding: 0 18px;
+}
+
+.card-answer-text {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 12px;
+  text-shadow: 0 2px 5px rgba(0,0,0,0.7);
+}
+
+.card-points-box {
+  background: #081538;
+  border: 2px solid var(--gold-border);
+  border-radius: var(--radius-sm);
+  min-width: 60px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 900;
+  color: #ffeaa7;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+}
+
+/* Empty placeholder slot */
+.card-slot.empty-slot .card-front {
+  background: #091535;
+  border: 2px dashed rgba(255, 255, 255, 0.12);
+  opacity: 0.4;
+}
+
+.card-slot.empty-slot .slot-number-circle {
+  display: none;
+}
+
+/* Floating Strikes Overlay (Big Dramatic Red X's) */
+.strikes-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 28px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.strikes-overlay.active {
+  opacity: 1;
+}
+
+.strike-big-x {
+  font-family: var(--font-display);
+  font-size: 10.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--strike-red);
+  text-shadow: 0 0 35px var(--strike-glow), 0 0 10px #ffffff;
+  animation: strikeShake 0.45s ease forwards;
+}
+
+/* Face-Off & Steal Status Banners */
+.event-banner-bar {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.status-ribbon {
+  background: rgba(9, 23, 60, 0.92);
+  border: 2px solid var(--gold-border);
+  border-radius: 30px;
+  padding: 8px 26px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.status-ribbon.steal-mode {
+  border-color: #ff5252;
+  background: rgba(120, 20, 20, 0.9);
+  box-shadow: 0 0 25px rgba(255, 82, 82, 0.7);
+}
+
+.ribbon-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--gold-primary);
+}
+
+.status-ribbon.steal-mode .ribbon-title {
+  color: #ff7675;
+}
+
+.ribbon-desc {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Countdown Timer Badge */
+.countdown-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #091a44;
+  border: 2px solid #2ecc71;
+  border-radius: 20px;
+  padding: 6px 18px;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #2ecc71;
+}
+
+.countdown-badge.warning {
+  border-color: #f39c12;
+  color: #f1c40f;
+  animation: pulseGlow 1s infinite;
+}
+
+.countdown-badge.danger {
+  border-color: var(--strike-red);
+  color: var(--strike-red);
+  animation: pulseGlow 0.5s infinite;
+}
+
+/* Grand Winner Modal */
+.winner-card {
+  text-align: center;
+  background: radial-gradient(circle, #1a3374 0%, #081639 90%);
+  border: 4px solid var(--gold-border);
+  box-shadow: 0 0 50px rgba(246, 185, 59, 0.8);
+  padding: 40px;
+}
+
+.trophy-icon {
+  font-size: 5.5rem;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 15px rgba(246, 185, 59, 0.8));
+}
+
+.winner-headline {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold-primary);
+  margin-bottom: 8px;
+}
+
+.winner-team-name {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 20px;
+}
+
+.final-scores-box {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin: 24px 0;
+}
+
+.final-score-col {
+  background: rgba(0,0,0,0.5);
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: var(--radius-md);
+  padding: 16px 28px;
+  min-width: 170px;
+}
+
+.final-score-num {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: var(--gold-primary);
+}
+
+@media (max-width: 900px) {
+  .stage-hud {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .feud-grid {
+    grid-template-columns: 1fr;
+  }
+  .card-slot {
+    height: 68px;
+  }
+  .card-answer-text {
+    font-size: 1.25rem;
+  }
+}

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Feud - Live Game Board</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/board.css">
+  <!-- PeerJS for WebRTC Multiplayer Buzzers -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+  <!-- Confetti Canvas for Victory Fanfare -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <div class="board-container">
+    <!-- Top Stage HUD -->
+    <header class="stage-hud">
+      <!-- Team 1 Scoreboard -->
+      <div class="team-scoreboard team-1" id="team1Card">
+        <div class="team-name" id="team1Name">Team 1</div>
+        <div class="team-score" id="team1Score">0</div>
+        <div class="turn-pill">Controlling Team</div>
+      </div>
+
+      <!-- Center Bank Podium & Round Info -->
+      <div class="stage-center">
+        <div class="round-pill-badge" id="roundPill">ROUND 1 OF 3</div>
+        <div class="bank-podium">
+          <div class="bank-label">Round Bank</div>
+          <div class="bank-score" id="bankScore">0</div>
+        </div>
+      </div>
+
+      <!-- Team 2 Scoreboard -->
+      <div class="team-scoreboard team-2" id="team2Card">
+        <div class="team-name" id="team2Name">Team 2</div>
+        <div class="team-score" id="team2Score">0</div>
+        <div class="turn-pill">Controlling Team</div>
+      </div>
+    </header>
+
+    <!-- Question Marquee Banner -->
+    <section class="question-marquee">
+      <div class="question-text" id="questionText">Ready for Face-Off Question...</div>
+    </section>
+
+    <!-- Iconic Family Feud Arena Board -->
+    <main class="feud-board-outer">
+      <div class="feud-board-frame">
+        <!-- 8 Flip Card Slots (2 columns of 4) -->
+        <div class="feud-grid" id="cardsGrid">
+          <!-- Dynamically populated by board.js -->
+        </div>
+
+        <!-- Big Red Strikes (X) Dramatic Overlay -->
+        <div class="strikes-overlay" id="strikesOverlay">
+          <div id="strikeSymbols" style="display:flex;gap:20px;"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Event Banner & Timer HUD -->
+    <footer class="event-banner-bar">
+      <div class="status-ribbon" id="eventBanner">
+        <span class="ribbon-title" id="ribbonTitle">THE FACE-OFF</span>
+        <span class="ribbon-desc" id="ribbonDesc">Arm buzzers to begin...</span>
+      </div>
+
+      <!-- Turn & Steal Countdown Timer -->
+      <div class="countdown-badge" id="timerBadge" style="display:none;">
+        <span>⏱️</span>
+        <span id="timerCount">20s</span>
+      </div>
+
+      <!-- Quick Board Tools -->
+      <div style="display:flex;gap:8px;position:absolute;right:28px;bottom:16px;">
+        <span class="badge badge-gold" id="roomBadge">ROOM: FEUD</span>
+        <button class="icon-btn" id="soundToggleBtn">🔊 Sound FX</button>
+        <button class="icon-btn" id="fullscreenBtn">⛶ Fullscreen</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Grand Winner Celebration Modal -->
+  <div class="modal-overlay" id="winnerModal">
+    <div class="modal-card winner-card">
+      <div class="trophy-icon">🏆</div>
+      <h2 class="winner-headline">GRAND CHAMPIONS</h2>
+      <div class="winner-team-name" id="winnerTeamName">TEAM 1</div>
+      <p style="color:var(--text-muted);font-size:1.15rem;font-weight:600;">Congratulations on winning the match!</p>
+
+      <div class="final-scores-box">
+        <div class="final-score-col">
+          <div id="finalTeam1Label" style="color:#2ecc71;font-weight:800;font-size:1.15rem;margin-bottom:6px;font-family:var(--font-display);">Team 1</div>
+          <div class="final-score-num" id="finalTeam1Score">0</div>
+        </div>
+        <div class="final-score-col">
+          <div id="finalTeam2Label" style="color:#ff5252;font-weight:800;font-size:1.15rem;margin-bottom:6px;font-family:var(--font-display);">Team 2</div>
+          <div class="final-score-num" id="finalTeam2Score">0</div>
+        </div>
+      </div>
+
+      <button class="card-action-btn btn-gold close-modal-btn" style="margin:0 auto;display:inline-block;padding:12px 34px;">Close</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/sound.js"></script>
+  <script src="js/confetti.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/board.js"></script>
+</body>
+</html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Feud - Admin Supervisor Screen</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <!-- SheetJS for Excel (.xlsx / .xls) reading -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- PeerJS for WebRTC Multiplayer Buzzers -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body class="admin-layout">
+  <!-- Admin Header -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-logo">Feud Admin</span>
+      <span id="webrtcStatus" class="badge badge-gold">Connecting...</span>
+    </div>
+
+    <!-- Room & Quick Launchers -->
+    <div class="header-actions">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:0.85rem;color:var(--text-muted);font-weight:800;font-family:var(--font-display);">ROOM:</span>
+        <input type="text" id="roomCodeInput" class="form-input" style="width:110px;padding:6px 10px;font-size:0.9rem;font-weight:800;text-transform:uppercase;" value="FEUD">
+        <button id="setRoomBtn" class="icon-btn" style="padding:6px 10px;">Set</button>
+      </div>
+
+      <button id="showQrBtn" class="icon-btn">📱 Buzzer QR Code</button>
+      <button id="openBuzzerBtn" class="icon-btn">📱 Open Buzzer</button>
+      <button id="openBoardBtn" class="icon-btn" style="border-color:var(--gold-border);color:var(--gold-primary);">📺 Open Board</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <!-- Main Left Column -->
+    <div class="admin-left-col">
+      <!-- 1: Custom Teams Setup Bar -->
+      <section class="control-card" style="margin-bottom:16px;padding:16px 20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:0.88rem;font-weight:800;color:#2ecc71;font-family:var(--font-display);">TEAM 1:</span>
+              <input type="text" id="team1NameInput" class="form-input" style="width:170px;padding:6px 12px;font-size:0.92rem;font-weight:700;color:#2ecc71;" value="Team 1">
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:0.88rem;font-weight:800;color:#ff5252;font-family:var(--font-display);">TEAM 2:</span>
+              <input type="text" id="team2NameInput" class="form-input" style="width:170px;padding:6px 12px;font-size:0.92rem;font-weight:700;color:#ff7675;" value="Team 2">
+            </div>
+
+            <button id="updateTeamsBtn" class="btn-primary" style="padding:7px 16px;font-size:0.88rem;">Save Names</button>
+          </div>
+
+          <div style="font-size:0.82rem;color:var(--text-muted);">
+            Names sync live to Board & mobile buzzers!
+          </div>
+        </div>
+      </section>
+
+      <!-- 2: Custom Amounts of Rounds Manager Bar -->
+      <section class="round-manager-bar">
+        <div class="round-selector-group">
+          <span style="font-size:0.9rem;font-weight:800;color:var(--gold-primary);text-transform:uppercase;font-family:var(--font-display);">Rounds:</span>
+          <!-- Dynamic round buttons populated by admin.js -->
+          <div id="roundButtonsContainer" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+
+          <div class="rounds-config-box">
+            <label for="totalRoundsInput" style="font-size:0.82rem;color:var(--text-muted);font-weight:700;">Total Rounds:</label>
+            <input type="number" id="totalRoundsInput" class="form-input" style="width:58px;padding:4px 8px;font-size:0.9rem;text-align:center;" min="1" max="15" value="3">
+            <button id="updateRoundsCountBtn" class="icon-btn" style="padding:4px 8px;font-size:0.8rem;">Set</button>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:6px;margin-left:6px;">
+            <label for="multiplierSelect" style="font-size:0.82rem;color:var(--text-muted);font-weight:700;">Multiplier:</label>
+            <select id="multiplierSelect" class="form-input" style="width:75px;padding:4px;">
+              <option value="1">1X</option>
+              <option value="2">2X</option>
+              <option value="3">3X</option>
+              <option value="4">4X</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button id="nextRoundBtn" class="btn-secondary" style="font-size:0.85rem;">Next Round ➔</button>
+          <button id="resetRoundBtn" class="btn-secondary" style="font-size:0.85rem;">🔄 Reset Round</button>
+          <button id="declareWinnerBtn" class="btn-primary" style="font-size:0.85rem;">🏆 Declare Grand Winner</button>
+        </div>
+      </section>
+
+      <!-- 3: The Face-Off Helper Card (Specific Rules) -->
+      <section class="control-card accent-gold">
+        <div class="card-title">
+          <span>⚡ The Face-Off Podiums</span>
+          <span id="faceoffStatusText" style="font-size:0.85rem;color:var(--gold-glow);font-weight:700;">Podiums Ready. Arm buzzers to start.</span>
+        </div>
+
+        <!-- Buzzer Arm / Reset -->
+        <div class="buzzer-arm-bar">
+          <button id="armBuzzerBtn" class="btn-primary" style="flex:2;">⚡ ARM BUZZERS (Ready, Set, Buzz!)</button>
+          <button id="resetBuzzerBtn" class="btn-secondary" style="flex:1;">Reset Buzzers</button>
+        </div>
+
+        <!-- Face-off Podium Results -->
+        <div class="faceoff-podium-grid">
+          <div class="podium-box" id="firstBuzzBox">
+            <div class="podium-title">1st Buzzer Hit (Fastest)</div>
+            <div class="podium-player-name" id="firstPlayerText">Waiting...</div>
+          </div>
+          <div class="podium-box" id="secondBuzzBox">
+            <div class="podium-title">2nd Buzzer Hit (Runner-up)</div>
+            <div class="podium-player-name" id="secondPlayerText">Waiting...</div>
+          </div>
+        </div>
+
+        <!-- Face-off Rules Decisions -->
+        <div class="faceoff-actions-bar">
+          <div style="font-size:0.85rem;font-weight:800;color:var(--gold-glow);margin-bottom:2px;font-family:var(--font-display);">DECIDE BOARD CONTROL (Rules & Mechanics):</div>
+          <div class="action-row">
+            <button id="ruleDirectWinBtn" class="btn-primary" style="flex:1;font-size:0.85rem;padding:9px 12px;">
+              1. Revealed #1 Answer (Direct Win of Control)
+            </button>
+            <button id="rulePassOpponentBtn" class="btn-secondary" style="flex:1;font-size:0.85rem;padding:9px 12px;">
+              2. On Board but not #1 (Pass to Player 2 to Beat Rank)
+            </button>
+            <button id="ruleDefaultControlBtn" class="btn-secondary" style="flex:1;font-size:0.85rem;padding:9px 12px;">
+              3. Neither on Board (Default Control to 1st Team)
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4: Board Play & Strikes Supervisor -->
+      <section class="control-card">
+        <div class="card-title">
+          <span>🎯 Playing the Board</span>
+          <span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">No consultation during board play!</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;">
+          <!-- Controlling Team & Turn -->
+          <div style="background:rgba(0,0,0,0.35);padding:12px 16px;border-radius:var(--radius-sm);">
+            <div style="font-size:0.85rem;font-weight:800;color:var(--gold-glow);margin-bottom:6px;font-family:var(--font-display);">Controlling Team:</div>
+            <select id="controllingTeamSelect" class="form-input">
+              <option value="">-- No Team In Control --</option>
+              <option value="1">1. Team 1</option>
+              <option value="2">2. Team 2</option>
+            </select>
+
+            <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:0.85rem;color:var(--text-muted);font-weight:700;">Current Turn:</span>
+              <strong id="turnPlayerDisplay" style="color:#2ecc71;font-size:0.95rem;">None</strong>
+              <button id="nextPlayerTurnBtn" class="icon-btn" style="padding:4px 10px;font-size:0.8rem;">Next Player ➔</button>
+            </div>
+          </div>
+
+          <!-- Turn Timer (20 Seconds Rule) -->
+          <div style="background:rgba(0,0,0,0.35);padding:12px 16px;border-radius:var(--radius-sm);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:0.85rem;font-weight:800;color:var(--gold-glow);font-family:var(--font-display);">20s Turn Countdown:</span>
+              <span class="timer-digits" id="timerDigits">20s</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button id="startTimer20Btn" class="btn-primary" style="flex:1;padding:7px;font-size:0.85rem;">▶ Start 20s</button>
+              <button id="pauseTimerBtn" class="btn-secondary" style="flex:1;padding:7px;font-size:0.85rem;">⏸ Pause</button>
+              <button id="resetTimerBtn" class="btn-secondary" style="padding:7px 12px;font-size:0.85rem;">↺ 20s</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Strikes Supervisor -->
+        <div style="background:rgba(235,47,6,0.12);border:1px solid rgba(235,47,6,0.35);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <span style="font-weight:900;color:var(--strike-red);font-size:1rem;text-transform:uppercase;font-family:var(--font-display);">Strikes:</span>
+              <div class="strike-display-box" id="strikeCountDisplay">
+                <span class="strike-pip">X</span>
+                <span class="strike-pip">X</span>
+                <span class="strike-pip">X</span>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;">
+              <button id="addStrike1Btn" class="btn-danger" style="padding:7px 14px;font-size:0.88rem;">+1 Strike (X)</button>
+              <button id="addStrike2Btn" class="btn-danger" style="padding:7px 14px;font-size:0.88rem;">+2 (XX)</button>
+              <button id="addStrike3Btn" class="btn-danger" style="padding:7px 14px;font-size:0.88rem;">+3 (XXX)</button>
+              <button id="clearStrikesBtn" class="btn-secondary" style="padding:7px 12px;font-size:0.88rem;">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Question Banner & Controls -->
+        <div class="active-question-banner">
+          <div class="active-q-header">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <span class="badge badge-gold" id="activeQIndexBadge">Question #1</span>
+              <span class="badge badge-green" id="activeQStatsBadge">8 Answers · 100 Pts</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button id="prevQBtn" class="icon-btn" style="padding:4px 10px;font-size:0.8rem;">⬅ Prev</button>
+              <button id="nextQBtn" class="icon-btn" style="padding:4px 10px;font-size:0.8rem;">Next ➔</button>
+              <button id="manageQuestionsMainBtn" class="btn-primary" style="padding:5px 12px;font-size:0.82rem;">
+                📚 Question Bank & Upload
+              </button>
+            </div>
+          </div>
+
+          <div class="active-q-title" id="adminQuestionText">
+            Ready for Question...
+          </div>
+
+          <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+            <label style="font-size:0.82rem;color:var(--text-muted);font-weight:700;white-space:nowrap;">Quick Switch:</label>
+            <select id="adminQuestionSelect" class="form-input" style="padding:6px 10px;font-size:0.88rem;flex:1;">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Answers Reveal Matrix -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:0.9rem;font-weight:800;color:var(--gold-primary);text-transform:uppercase;font-family:var(--font-display);">Answers Matrix (Click to Reveal on Board):</span>
+            <span id="revealedPointsSummary" style="font-size:0.85rem;color:var(--gold-glow);font-weight:700;"></span>
+          </div>
+          <div class="answers-admin-list" id="adminAnswersList">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 5: The Steal Phase Card -->
+      <section class="control-card accent-steal">
+        <div class="card-title" style="color:#ff7675;">
+          <span>🚨 The Steal Phase (Upon 3 Strikes)</span>
+          <span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">Opposing team gets 15s group conferral</span>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.35);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:12px;">
+          <div>
+            <div style="font-size:0.92rem;font-weight:800;color:#fff;font-family:var(--font-display);">15s Conferral Countdown:</div>
+            <div style="font-size:0.85rem;color:var(--text-muted);">Designated Captain must present the team's agreed answer.</div>
+          </div>
+          <button id="startSteal15Btn" class="btn-primary" style="padding:9px 18px;font-size:0.92rem;">▶ Start 15s Conferral Timer</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <button id="stealSuccessBtn" class="btn-primary" style="background:#2ecc71;border-color:#27ae60;font-size:0.9rem;padding:12px;">
+            ✅ Steal SUCCESSFUL (Answer on Board)<br>
+            <span style="font-size:0.8rem;font-weight:normal;opacity:0.95;">All bank points transferred to Stealing Team!</span>
+          </button>
+          <button id="stealFailedBtn" class="btn-danger" style="font-size:0.9rem;padding:12px;">
+            ❌ Steal FAILED (Answer NOT on Board)<br>
+            <span style="font-size:0.8rem;font-weight:normal;opacity:0.95;">Original controlling team retains all bank points!</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 6: Bank & Score Adjustment -->
+      <section class="control-card">
+        <div class="card-title">
+          <span>💰 Bank & Scores</span>
+          <div>
+            <span style="font-size:0.9rem;color:var(--text-muted);font-weight:700;">Round Bank:</span>
+            <strong id="adminBankScore" style="color:var(--gold-primary);font-size:1.6rem;font-family:var(--font-display);font-weight:900;margin-left:8px;">0</strong>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:14px;">
+          <button id="awardBankTeam1Btn" class="btn-primary" style="flex:1;background:rgba(46, 204, 113, 0.35);border-color:#2ecc71;color:#2ecc71;font-size:0.9rem;">
+            Award Bank ➔ Team 1
+          </button>
+          <button id="awardBankTeam2Btn" class="btn-primary" style="flex:1;background:rgba(255, 82, 82, 0.35);border-color:#ff5252;color:#ff7675;font-size:0.9rem;">
+            Award Bank ➔ Team 2
+          </button>
+          <button id="clearBankBtn" class="btn-secondary" style="font-size:0.9rem;">Clear Bank</button>
+        </div>
+
+        <!-- Manual Score Tweaks -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;background:rgba(0,0,0,0.3);padding:12px;border-radius:var(--radius-sm);">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-family:var(--font-display);font-size:1.15rem;font-weight:800;color:#2ecc71;">Team 1 Score</span>
+              <span id="team1ScoreDisplay" style="font-family:var(--font-display);font-size:1.6rem;font-weight:900;color:#2ecc71;">0</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button id="team1Plus10" class="icon-btn" style="flex:1;justify-content:center;">+10</button>
+              <button id="team1Minus10" class="icon-btn" style="flex:1;justify-content:center;">-10</button>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-family:var(--font-display);font-size:1.15rem;font-weight:800;color:#ff7675;">Team 2 Score</span>
+              <span id="team2ScoreDisplay" style="font-family:var(--font-display);font-size:1.6rem;font-weight:900;color:#ff7675;">0</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button id="team2Plus10" class="icon-btn" style="flex:1;justify-content:center;">+10</button>
+              <button id="team2Minus10" class="icon-btn" style="flex:1;justify-content:center;">-10</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Sidebar Right Column -->
+    <div class="sidebar-panel">
+      <!-- Question Bank Summary Card -->
+      <section class="control-card">
+        <div class="card-title">
+          <span>📚 Question Bank</span>
+          <span class="badge badge-gold" id="totalQuestionsCountBadge">10 Loaded</span>
+        </div>
+        <p style="font-size:0.84rem;color:var(--text-muted);margin-bottom:12px;line-height:1.45;">
+          Manage trivia questions, upload Excel / CSV spreadsheets, or edit survey point values:
+        </p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button id="manageQuestionsBtn" class="btn-primary" style="width:100%;font-size:0.9rem;padding:10px;">
+            📚 Open Question Bank & Editor
+          </button>
+          <button id="uploadSpreadsheetSidebarBtn" class="btn-secondary" style="width:100%;font-size:0.85rem;padding:8px;">
+            📊 Upload Excel / CSV Spreadsheet
+          </button>
+          <button id="downloadTemplateSidebarBtn" class="icon-btn" style="width:100%;font-size:0.82rem;justify-content:center;padding:8px;border-color:rgba(246,185,59,0.35);">
+            📥 Download Sample Spreadsheet
+          </button>
+        </div>
+      </section>
+
+      <!-- Connected Players & Roster (Unlimited Players) -->
+      <section class="control-card">
+        <div class="card-title">
+          <span>👥 Players Roster</span>
+          <span class="badge badge-gold" id="connectedCount">0</span>
+        </div>
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px;">
+          Unlimited players can connect live. Designate captains or switch teams anytime:
+        </div>
+        <div class="players-roster-list" id="playersRosterList">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- Audio Effects Soundboard -->
+      <section class="control-card">
+        <div class="card-title">
+          <span>🔊 Game Show SFX</span>
+          <button id="sfxMute" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;">🔊 Sound: On</button>
+        </div>
+        <div class="sound-fx-grid">
+          <button id="sfxDing" class="sfx-btn">🔔 Reveal Ding</button>
+          <button id="sfxStrike" class="sfx-btn">❌ Strike (X)</button>
+          <button id="sfxTripleStrike" class="sfx-btn">💥 Triple Strike</button>
+          <button id="sfxBuzzer" class="sfx-btn">🚨 Face-Off Buzzer</button>
+          <button id="sfxGong" class="sfx-btn">🔔 Steal Gong</button>
+          <button id="sfxFanfare" class="sfx-btn">🎺 Win Fanfare</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- QR Code Modal -->
+  <div class="modal-overlay" id="qrModal">
+    <div class="modal-card" style="max-width:390px;text-align:center;">
+      <div class="modal-header">
+        <h3 class="modal-title">Join Game Buzzer</h3>
+        <button class="close-modal-btn">&times;</button>
+      </div>
+      <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:14px;">Scan with smartphone camera to connect buzzer directly to this room:</p>
+      <div style="display:flex;justify-content:center;margin-bottom:14px;">
+        <canvas id="qrCanvas" style="border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.5);"></canvas>
+      </div>
+      <div id="qrJoinUrl" style="word-break:break-all;font-size:0.8rem;font-weight:700;color:var(--gold-glow);background:rgba(0,0,0,0.4);padding:8px;border-radius:4px;margin-bottom:14px;"></div>
+      <button class="btn-primary close-modal-btn" style="width:100%;">Done</button>
+    </div>
+  </div>
+
+  <!-- Custom Questions & Spreadsheet Upload Modal (Tabbed Interface) -->
+  <div class="modal-overlay" id="questionsModal">
+    <div class="modal-card" style="max-width:850px;width:95%;">
+      <div class="modal-header">
+        <h3 class="modal-title">Question Bank & Spreadsheet Manager</h3>
+        <button class="close-modal-btn">&times;</button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="modal-tabs">
+        <button type="button" class="modal-tab-btn active" id="tabBankBtn" data-tab="tabBank">📋 Question Bank (<span id="tabBankCount">10</span>)</button>
+        <button type="button" class="modal-tab-btn" id="tabSpreadsheetBtn" data-tab="tabSpreadsheet">📊 Upload Spreadsheet (Excel/CSV)</button>
+        <button type="button" class="modal-tab-btn" id="tabBuilderBtn" data-tab="tabBuilder">➕ Add New Question</button>
+      </div>
+
+      <!-- TAB 1: QUESTION BANK LIST -->
+      <div class="tab-content-panel active" id="tabBank">
+        <!-- Search & Actions Bar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+          <input type="text" id="qSearchInput" class="form-input" placeholder="🔍 Search question prompt or answer..." style="flex:1;min-width:220px;padding:8px 14px;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button id="exportQBtn" class="icon-btn" style="font-size:0.8rem;">💾 Export JSON</button>
+            <label class="icon-btn" style="font-size:0.8rem;cursor:pointer;">
+              📂 Import JSON
+              <input type="file" id="importQInput" accept=".json" style="display:none;">
+            </label>
+            <button id="resetDefaultQBtn" class="icon-btn" style="font-size:0.8rem;color:var(--strike-red);">Reset Defaults</button>
+          </div>
+        </div>
+
+        <div id="customQList" style="max-height:460px;overflow-y:auto;padding-right:6px;">
+          <!-- Populated dynamically with .q-bank-card -->
+        </div>
+      </div>
+
+      <!-- TAB 2: SPREADSHEET UPLOAD (EXCEL & CSV) -->
+      <div class="tab-content-panel" id="tabSpreadsheet">
+        <div style="background:rgba(0,0,0,0.3);border:1px solid rgba(246,185,59,0.3);padding:18px;border-radius:var(--radius-sm);margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div>
+              <h4 style="font-size:1.15rem;color:var(--gold-primary);margin-bottom:2px;">Upload Questions Spreadsheet</h4>
+              <p style="font-size:0.82rem;color:var(--text-muted);">Supports Excel (.xlsx, .xls) and CSV (.csv) files</p>
+            </div>
+            <button id="downloadTemplateBtn" class="btn-primary" style="font-size:0.82rem;padding:7px 14px;">
+              📥 Download Sample Spreadsheet Template
+            </button>
+          </div>
+
+          <div class="spreadsheet-dropzone" id="spreadsheetDropzone">
+            <div class="dropzone-icon">📊</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:6px;font-family:var(--font-display);">
+              Click or Drag & Drop Excel or CSV file here
+            </div>
+            <div style="font-size:0.85rem;color:var(--text-muted);max-width:520px;margin:0 auto 12px;line-height:1.4;">
+              Easily import dozens of questions at once. Format: Question, Answer 1, Points 1, Answer 2, Points 2, ...
+            </div>
+            <span class="btn-secondary" style="font-size:0.82rem;display:inline-block;padding:6px 16px;">Browse Files</span>
+            <input type="file" id="spreadsheetFileInput" accept=".csv, .xlsx, .xls" style="display:none;">
+          </div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.04);border-radius:var(--radius-sm);padding:14px;border:1px solid rgba(255,255,255,0.1);">
+          <h5 style="font-size:0.9rem;color:var(--gold-glow);margin-bottom:8px;font-family:var(--font-display);">Column Format Reference:</h5>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.8rem;text-align:left;">
+              <thead>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.2);color:var(--gold-primary);">
+                  <th style="padding:6px;">Col 1 (Question)</th>
+                  <th style="padding:6px;">Col 2 (Answer 1)</th>
+                  <th style="padding:6px;">Col 3 (Points 1)</th>
+                  <th style="padding:6px;">Col 4 (Answer 2)</th>
+                  <th style="padding:6px;">Col 5 (Points 2)</th>
+                  <th style="padding:6px;">... up to Answer 8</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="color:var(--text-muted);">
+                  <td style="padding:6px;">Name something people forget</td>
+                  <td style="padding:6px;">Smartphone</td>
+                  <td style="padding:6px;">36</td>
+                  <td style="padding:6px;">Keys</td>
+                  <td style="padding:6px;">26</td>
+                  <td style="padding:6px;">...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: CREATE / EDIT QUESTION -->
+      <div class="tab-content-panel" id="tabBuilder">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h4 style="font-size:1.1rem;color:var(--gold-primary);" id="builderModeTitle">➕ Create New Question</h4>
+          <span id="builderPointsSumBadge" class="badge badge-gold" style="font-size:0.85rem;">Total Points: 0 pts</span>
+        </div>
+
+        <input type="hidden" id="editingQuestionId" value="">
+
+        <div class="form-group">
+          <label class="form-label">Question Prompt:</label>
+          <input type="text" id="qPromptInput" class="form-input" placeholder="e.g. Name something people always forget to bring when leaving home...">
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:0.85rem;color:var(--text-muted);font-weight:700;">Answers & Point Values (Highest points rank #1):</span>
+          <button type="button" id="clearBuilderRowsBtn" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;">Clear All Answers</button>
+        </div>
+
+        <div id="answersBuilder" style="margin-bottom:16px;">
+          <!-- 8 rows generated dynamically -->
+        </div>
+
+        <div style="display:flex;gap:10px;">
+          <button id="saveCustomQBtn" class="btn-primary" style="flex:2;padding:12px;font-size:0.95rem;">
+            💾 Save Question to Bank
+          </button>
+          <button type="button" id="cancelEditQBtn" class="btn-secondary" style="flex:1;padding:12px;display:none;">
+            Cancel Edit
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,0.1);padding-top:14px;display:flex;justify-content:flex-end;">
+        <button class="btn-secondary close-modal-btn" style="padding:8px 24px;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/sound.js"></script>
+  <script src="js/qrcode.js"></script>
+  <script src="js/questions.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
