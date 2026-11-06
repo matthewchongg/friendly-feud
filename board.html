@@ -74,12 +74,27 @@
       </div>
 
       <!-- Quick Board Tools -->
-      <div style="display:flex;gap:8px;position:absolute;right:28px;bottom:16px;">
+      <div style="display:flex;gap:8px;align-items:center;position:absolute;right:28px;bottom:16px;">
+        <span class="badge badge-green" id="boardPlayersBadge" style="display:none;">👥 <span id="boardPlayerCount">0</span> Players</span>
         <span class="badge badge-gold" id="roomBadge">ROOM: FEUD</span>
+        <button class="icon-btn" id="boardQrBtn">📱 Buzzer QR</button>
         <button class="icon-btn" id="soundToggleBtn">🔊 Sound FX</button>
         <button class="icon-btn" id="fullscreenBtn">⛶ Fullscreen</button>
       </div>
     </footer>
+  </div>
+
+  <!-- Buzzer QR Code Modal for Big Screen Display -->
+  <div class="modal-overlay" id="boardQrModal">
+    <div class="modal-card" style="max-width:400px;text-align:center;">
+      <h3 style="font-family:var(--font-display);font-size:1.8rem;color:var(--gold-primary);margin-bottom:8px;">Scan to Join Game</h3>
+      <p style="color:var(--text-muted);font-size:0.95rem;margin-bottom:14px;">Scan with smartphone camera to open player buzzer:</p>
+      <div style="display:flex;justify-content:center;margin-bottom:14px;">
+        <canvas id="boardQrCanvas" style="border-radius:10px;box-shadow:0 8px 25px rgba(0,0,0,0.6);"></canvas>
+      </div>
+      <div id="boardQrUrl" style="word-break:break-all;font-size:0.85rem;font-weight:700;color:var(--gold-glow);background:rgba(0,0,0,0.4);padding:8px;border-radius:6px;margin-bottom:16px;"></div>
+      <button class="btn-primary" id="closeBoardQrBtn" style="width:100%;">Close</button>
+    </div>
   </div>
 
   <!-- Grand Winner Celebration Modal -->
@@ -107,6 +122,7 @@
 
   <!-- Scripts -->
   <script src="js/sound.js"></script>
+  <script src="js/qrcode.js"></script>
   <script src="js/confetti.js"></script>
   <script src="js/state.js"></script>
   <script src="js/sync.js"></script>

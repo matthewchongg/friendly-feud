@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements - Navigation & Room
   const roomCodeInput = document.getElementById('roomCodeInput');
   const setRoomBtn = document.getElementById('setRoomBtn');
+  const randomRoomBtn = document.getElementById('randomRoomBtn');
+  const reconnectWebRtcBtn = document.getElementById('reconnectWebRtcBtn');
+  const clearRosterBtn = document.getElementById('clearRosterBtn');
   const webrtcStatusEl = document.getElementById('webrtcStatus');
   const openBoardBtn = document.getElementById('openBoardBtn');
   const openBuzzerBtn = document.getElementById('openBuzzerBtn');
@@ -161,20 +164,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- WebRTC & Sync Setup ---
   function initRoom() {
-    const code = state.roomCode || 'FEUD';
+    const code = (state.roomCode || 'FEUD').toUpperCase().trim();
     if (roomCodeInput) roomCodeInput.value = code;
 
     sync.initHostPeer(code, (evt) => {
       if (!webrtcStatusEl) return;
       if (evt.status === 'connected') {
         webrtcStatusEl.className = 'badge badge-green';
-        webrtcStatusEl.textContent = `Online: ${code}`;
-      } else if (evt.status === 'warning') {
+        webrtcStatusEl.textContent = `🟢 Online: ${code} (${evt.connectedCount || 0} buzzers)`;
+        webrtcStatusEl.title = `Host active. Peer ID: feud-room-${code}. Devices connected: ${evt.connectedCount || 0}`;
+      } else if (evt.status === 'id-taken') {
         webrtcStatusEl.className = 'badge badge-gold';
-        webrtcStatusEl.textContent = 'Room Reconnected';
+        webrtcStatusEl.textContent = `⚠️ Room "${code}" Busy (Click "🎲 New")`;
+        webrtcStatusEl.title = 'Room code is occupied or clearing. Click "🎲 New" for a fresh room code.';
+      } else if (evt.status === 'disconnected') {
+        webrtcStatusEl.className = 'badge badge-gold';
+        webrtcStatusEl.textContent = '🟡 Reconnecting...';
       } else {
         webrtcStatusEl.className = 'badge badge-red';
-        webrtcStatusEl.textContent = 'Offline (Local Bus)';
+        webrtcStatusEl.textContent = '🔴 Offline (Local Bus)';
       }
     });
   }
@@ -892,6 +900,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (randomRoomBtn) {
+    randomRoomBtn.addEventListener('click', () => {
+      const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = 'FF-';
+      for (let i = 0; i < 4; i++) {
+        code += letters.charAt(Math.floor(Math.random() * letters.length));
+      }
+      state.roomCode = code;
+      if (roomCodeInput) roomCodeInput.value = code;
+      initRoom();
+      broadcastState();
+      renderUI();
+    });
+  }
+
+  if (reconnectWebRtcBtn) {
+    reconnectWebRtcBtn.addEventListener('click', () => {
+      initRoom();
+    });
+  }
+
+  if (clearRosterBtn) {
+    clearRosterBtn.addEventListener('click', () => {
+      if (confirm('Clear connected players roster? (Players can simply refresh or re-buzz to rejoin)')) {
+        state.connectedPlayers = [];
+        broadcastState();
+        renderUI();
+      }
+    });
+  }
+
   if (openBoardBtn) {
     openBoardBtn.addEventListener('click', () => {
       window.open(`board.html?room=${encodeURIComponent(state.roomCode)}`, '_blank');
@@ -907,13 +946,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- QR Code Modal ---
   if (showQrBtn) {
     showQrBtn.addEventListener('click', () => {
-      const buzzerUrl = `${window.location.origin}${window.location.pathname.replace('admin.html', '')}buzzer.html?room=${encodeURIComponent(state.roomCode)}`;
-      if (qrJoinUrlEl) qrJoinUrlEl.textContent = buzzerUrl;
+      try {
+        const buzzerUrl = new URL('buzzer.html', window.location.href);
+        buzzerUrl.searchParams.set('room', state.roomCode);
+        const finalUrl = buzzerUrl.href;
 
-      if (window.QRCodeRenderer && qrCanvas) {
-        window.QRCodeRenderer.toCanvas(qrCanvas, buzzerUrl, { width: 220, colorDark: '#071330' });
+        if (qrJoinUrlEl) qrJoinUrlEl.textContent = finalUrl;
+
+        if (window.QRCodeRenderer && qrCanvas) {
+          window.QRCodeRenderer.toCanvas(qrCanvas, finalUrl, { width: 220, colorDark: '#071330' });
+        }
+
+        const fileNoticeEl = document.getElementById('qrFileProtocolNotice');
+        if (fileNoticeEl) {
+          fileNoticeEl.style.display = window.location.protocol === 'file:' ? 'block' : 'none';
+        }
+
+        if (qrModalEl) qrModalEl.classList.add('active');
+      } catch (e) {
+        console.warn('Error generating QR:', e);
       }
-      if (qrModalEl) qrModalEl.classList.add('active');
     });
   }
 

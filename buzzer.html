@@ -43,7 +43,9 @@
           <input type="text" id="roomCodeInput" class="form-input" style="text-transform:uppercase;font-weight:800;letter-spacing:1.5px;" value="FEUD">
         </div>
 
-        <button type="button" id="joinGameBtn" class="btn-primary" style="width:100%;margin-top:10px;padding:14px;font-size:1.15rem;">
+        <div id="joinStatusMsg" style="display:none;font-size:0.85rem;padding:8px 10px;border-radius:6px;margin-bottom:10px;text-align:center;"></div>
+
+        <button type="button" id="joinGameBtn" class="btn-primary" style="width:100%;margin-top:4px;padding:14px;font-size:1.15rem;">
           JOIN BUZZER ROOM ➔
         </button>
       </div>
@@ -58,10 +60,17 @@
           <span class="player-identity-team" id="playerDisplayTeam">Team 1</span>
         </div>
 
-        <div class="scores-quick-bar">
+        <div class="scores-quick-bar" style="display:flex;align-items:center;gap:6px;">
+          <span id="buzzerRoomCodeTag" class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-light);font-size:0.75rem;">FEUD</span>
           <span id="currentRoundTag" class="badge badge-gold">Round 1</span>
-          <span id="clientStatusBadge" class="badge badge-green">Connected</span>
+          <button type="button" id="clientStatusBadge" class="badge badge-green" style="cursor:pointer;border:none;" title="Click to reconnect">Connected</button>
         </div>
+      </div>
+
+      <!-- Disconnect Alert Banner -->
+      <div id="buzzerDisconnectAlert" style="display:none;background:rgba(231,76,60,0.25);border:1px solid #e74c3c;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:0.85rem;color:#ff7675;align-items:center;justify-content:space-between;">
+        <span id="buzzerDisconnectText">Disconnected from game</span>
+        <button type="button" id="buzzerReconnectBtn" class="icon-btn" style="padding:4px 10px;font-size:0.78rem;background:rgba(255,255,255,0.15);">🔄 Reconnect</button>
       </div>
 
       <!-- Live Scores Header -->
@@ -96,6 +105,7 @@
 
   <!-- Scripts -->
   <script src="js/sound.js"></script>
+  <script src="js/state.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/buzzer.js"></script>
 </body>

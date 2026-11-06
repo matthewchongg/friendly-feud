@@ -39,6 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const finalTeam2ScoreEl = document.getElementById('finalTeam2Score');
 
   const roomBadgeEl = document.getElementById('roomBadge');
+  const boardPlayersBadgeEl = document.getElementById('boardPlayersBadge');
+  const boardPlayerCountEl = document.getElementById('boardPlayerCount');
+  const boardQrBtn = document.getElementById('boardQrBtn');
+  const boardQrModal = document.getElementById('boardQrModal');
+  const boardQrCanvas = document.getElementById('boardQrCanvas');
+  const boardQrUrl = document.getElementById('boardQrUrl');
+  const closeBoardQrBtn = document.getElementById('closeBoardQrBtn');
   const soundToggleBtn = document.getElementById('soundToggleBtn');
   const fullscreenBtn = document.getElementById('fullscreenBtn');
 
@@ -48,12 +55,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Parse room code from query params if given
   const urlParams = new URLSearchParams(window.location.search);
-  const roomParam = urlParams.get('room') || state.roomCode || 'FEUD';
+  const roomParam = (urlParams.get('room') || state.roomCode || 'FEUD').toUpperCase().trim();
   if (roomBadgeEl) roomBadgeEl.textContent = `ROOM: ${roomParam}`;
 
-  // Start Sync Engine as viewer
-  sync.initHostPeer(roomParam, (status) => {
-    console.log('Board WebRTC status:', status);
+  // Start Sync Engine as VIEWER (Board connects to Host without fighting for host ID)
+  sync.initViewerPeer(roomParam, (status) => {
+    console.log('[Board] Sync status:', status);
+    if (status.status === 'connected') {
+      if (roomBadgeEl) {
+        roomBadgeEl.className = 'badge badge-green';
+        roomBadgeEl.textContent = `ROOM: ${roomParam} (LIVE)`;
+      }
+    }
   });
 
   // Listen to sync messages from Admin or Local Broadcast
@@ -121,6 +134,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Render Answer Cards (Max 8 slots)
     renderCards(s.currentQuestion ? s.currentQuestion.answers : []);
+
+    // Connected Players Count on Board
+    if (boardPlayersBadgeEl && boardPlayerCountEl) {
+      const pCount = s.connectedPlayers ? s.connectedPlayers.length : 0;
+      boardPlayerCountEl.textContent = pCount;
+      boardPlayersBadgeEl.style.display = pCount > 0 ? 'inline-flex' : 'none';
+    }
 
     // Phase Banner logic
     renderPhaseBanner(s);
@@ -267,6 +287,31 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'STEAL_GONG': sound.playStealGong(); break;
       case 'FANFARE': sound.playFanfare(); break;
     }
+  }
+
+  // QR Code on Board Screen
+  if (boardQrBtn) {
+    boardQrBtn.addEventListener('click', () => {
+      try {
+        const buzzerUrl = new URL('buzzer.html', window.location.href);
+        buzzerUrl.searchParams.set('room', roomParam);
+        const finalUrl = buzzerUrl.href;
+
+        if (boardQrUrl) boardQrUrl.textContent = finalUrl;
+        if (window.QRCodeRenderer && boardQrCanvas) {
+          window.QRCodeRenderer.toCanvas(boardQrCanvas, finalUrl, { width: 220, colorDark: '#071330' });
+        }
+        if (boardQrModal) boardQrModal.classList.add('active');
+      } catch (e) {
+        console.warn('Error generating QR on board:', e);
+      }
+    });
+  }
+
+  if (closeBoardQrBtn) {
+    closeBoardQrBtn.addEventListener('click', () => {
+      if (boardQrModal) boardQrModal.classList.remove('active');
+    });
   }
 
   // Header controls

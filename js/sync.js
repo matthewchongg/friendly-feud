@@ -1,20 +1,46 @@
 /**
  * Family Feud Synchronization Engine
- * Combines BroadcastChannel (same machine / dual screen) + PeerJS WebRTC (mobile buzzers over internet/LAN)
+ * Combines BroadcastChannel (same machine / dual screen) + PeerJS WebRTC (mobile buzzers & remote boards over internet/LAN)
  */
 
 class SyncEngine {
   constructor(role = 'viewer') {
-    this.role = role; // 'host' (Admin), 'board' (Projector), or 'client' (Player Buzzer)
+    this.role = role; // 'host' (Admin), 'viewer' (Board / Projector), or 'client' (Player Buzzer)
     this.channel = null;
     this.peer = null;
     this.connections = new Map(); // For host: Map of peerId -> DataConnection
-    this.hostConn = null; // For client: connection to host
+    this.hostConn = null; // For client/viewer: connection to host
     this.listeners = new Set();
     this.isOnline = false;
     this.roomCode = 'FEUD';
+    this.playerData = null;
+    this.statusCallback = null;
+    this.reconnectTimer = null;
+    this.retryAttempts = 0;
+    this.maxRetries = 10;
 
     this.initBroadcastChannel();
+
+    // Auto-cleanup peer on page unload so room ID is released immediately on 0.peerjs.com
+    window.addEventListener('beforeunload', () => {
+      this.destroyPeer();
+    });
+  }
+
+  destroyPeer() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.hostConn) {
+      try { this.hostConn.close(); } catch(e){}
+      this.hostConn = null;
+    }
+    if (this.peer && !this.peer.destroyed) {
+      try { this.peer.destroy(); } catch(e){}
+    }
+    this.peer = null;
+    this.isOnline = false;
   }
 
   // --- BroadcastChannel (Local Dual-Screen Sync) ---
@@ -26,7 +52,7 @@ class SyncEngine {
         this.notifyListeners(msg);
       };
     } catch (e) {
-      console.warn('BroadcastChannel not supported in this environment, using localStorage fallback', e);
+      console.warn('BroadcastChannel not supported, using localStorage fallback', e);
       window.addEventListener('storage', (e) => {
         if (e.key === 'feud_bus_msg' && e.newValue) {
           try {
@@ -68,34 +94,54 @@ class SyncEngine {
     });
   }
 
-  // --- WebRTC PeerJS Integration ---
-  /**
-   * Initializes Host (Admin or Board) PeerJS connection
-   */
+  getIceServers() {
+    return [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' }
+    ];
+  }
+
+  // ==========================================
+  // HOST PEER (Admin Screen ONLY)
+  // Registers feud-room-[CODE] on PeerJS Cloud
+  // ==========================================
   initHostPeer(roomCode, onStatusChange) {
+    this.role = 'host';
+    this.statusCallback = onStatusChange;
     this.roomCode = (roomCode || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
     const peerId = 'feud-room-' + this.roomCode;
 
     if (typeof Peer === 'undefined') {
-      if (onStatusChange) onStatusChange({ status: 'offline', message: 'WebRTC offline (Local multi-screen active)' });
+      if (onStatusChange) onStatusChange({ status: 'offline', message: 'PeerJS script not loaded' });
       return;
     }
 
+    this.destroyPeer();
+
     try {
-      if (this.peer) this.peer.destroy();
       this.peer = new Peer(peerId, {
+        host: '0.peerjs.com',
+        port: 443,
+        path: '/',
+        secure: true,
         debug: 1,
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:global.stun.twilio.com:3478' }
-          ]
-        }
+        config: { iceServers: this.getIceServers() }
       });
 
       this.peer.on('open', (id) => {
         this.isOnline = true;
-        if (onStatusChange) onStatusChange({ status: 'connected', peerId: id, roomCode: this.roomCode });
+        this.retryAttempts = 0;
+        console.log(`[Host] WebRTC Room online with ID: ${id}`);
+        if (this.statusCallback) {
+          this.statusCallback({
+            status: 'connected',
+            peerId: id,
+            roomCode: this.roomCode,
+            connectedCount: this.connections.size
+          });
+        }
       });
 
       this.peer.on('connection', (conn) => {
@@ -103,127 +149,373 @@ class SyncEngine {
       });
 
       this.peer.on('error', (err) => {
-        console.warn('PeerJS Host notice:', err);
+        console.warn('[Host] PeerJS notice:', err);
         if (err.type === 'unavailable-id') {
-          // If ID is taken (e.g. host reloaded quickly), fallback or notify
-          if (onStatusChange) onStatusChange({ status: 'warning', message: 'Room code already registered. Still syncable via Local Bus.' });
+          // The ID is still occupied on the signaling server (e.g. recent refresh or duplicate tab)
+          this.isOnline = false;
+          if (this.statusCallback) {
+            this.statusCallback({
+              status: 'id-taken',
+              roomCode: this.roomCode,
+              message: `Room "${this.roomCode}" is currently busy or releasing. Waiting to reconnect...`
+            });
+          }
+          // Attempt auto-retry after brief timeout
+          if (this.retryAttempts < 4) {
+            this.retryAttempts++;
+            this.reconnectTimer = setTimeout(() => {
+              console.log(`[Host] Retrying host room registration (Attempt ${this.retryAttempts})...`);
+              this.initHostPeer(this.roomCode, this.statusCallback);
+            }, 3000);
+          }
         } else {
-          if (onStatusChange) onStatusChange({ status: 'error', message: err.type });
+          if (this.statusCallback) {
+            this.statusCallback({ status: 'error', errorType: err.type, message: err.message || err.type });
+          }
         }
       });
 
       this.peer.on('disconnected', () => {
         this.isOnline = false;
-        if (onStatusChange) onStatusChange({ status: 'disconnected', message: 'Disconnected from Peer Cloud' });
+        console.warn('[Host] PeerJS disconnected from server, attempting reconnect...');
+        if (this.statusCallback) this.statusCallback({ status: 'disconnected', message: 'Reconnecting to PeerJS cloud...' });
+        try {
+          if (this.peer && !this.peer.destroyed) this.peer.reconnect();
+        } catch (e) {}
       });
     } catch (e) {
-      console.error('Peer init error', e);
-      if (onStatusChange) onStatusChange({ status: 'offline', message: 'PeerJS unavailable' });
+      console.error('[Host] Fatal error initializing host peer:', e);
+      if (this.statusCallback) this.statusCallback({ status: 'offline', message: 'Peer init failed' });
     }
   }
 
   setupHostConnection(conn) {
     conn.on('open', () => {
       this.connections.set(conn.peer, conn);
-      // Send current state to newly joined client
-      if (window.gameState) {
+      console.log(`[Host] Peer connection open: ${conn.peer} (Total: ${this.connections.size})`);
+
+      // Immediately send welcome packet with current state
+      const curState = window.gameState ? window.gameState.get() : null;
+      try {
         conn.send({
-          type: 'STATE_UPDATE',
-          payload: window.gameState.get()
+          type: 'WELCOME_CLIENT',
+          payload: {
+            roomCode: this.roomCode,
+            serverTime: Date.now(),
+            state: curState
+          }
+        });
+      } catch (e) {
+        console.warn('[Host] Failed to send welcome packet:', e);
+      }
+
+      if (this.statusCallback) {
+        this.statusCallback({
+          status: 'connected',
+          roomCode: this.roomCode,
+          connectedCount: this.connections.size
         });
       }
     });
 
     conn.on('data', (data) => {
-      // Forward client message to local listeners (Admin and Board)
+      if (!data || !data.type) return;
+
+      if (data.type === 'PLAYER_JOIN') {
+        const player = data.payload;
+        conn.playerInfo = player;
+        console.log(`[Host] Player joined via WebRTC: ${player.playerName} (${player.team === 1 ? 'Team 1' : 'Team 2'}) [${conn.peer}]`);
+
+        // Send confirmation back to player
+        try {
+          conn.send({
+            type: 'JOIN_CONFIRMED',
+            payload: {
+              playerId: player.playerId,
+              state: window.gameState ? window.gameState.get() : null
+            }
+          });
+        } catch (e) {}
+
+        this.notifyListeners(data);
+        this.broadcastLocal(data.type, data.payload);
+        return;
+      }
+
+      if (data.type === 'VIEWER_JOIN') {
+        conn.isViewer = true;
+        console.log(`[Host] Remote Viewer/Board joined: ${conn.peer}`);
+        try {
+          conn.send({
+            type: 'STATE_UPDATE',
+            payload: window.gameState ? window.gameState.get() : null
+          });
+        } catch (e) {}
+        return;
+      }
+
+      if (data.type === 'PING') {
+        try {
+          conn.send({ type: 'PONG', payload: { serverTime: Date.now() } });
+        } catch(e) {}
+        return;
+      }
+
+      // Forward client event (e.g. PLAYER_BUZZ) to local listeners and broadcast locally
       this.notifyListeners(data);
       this.broadcastLocal(data.type, data.payload);
     });
 
     conn.on('close', () => {
       this.connections.delete(conn.peer);
-      // Notify player left
-      this.notifyListeners({ type: 'PLAYER_DISCONNECT', payload: { peerId: conn.peer } });
-      this.broadcastLocal('PLAYER_DISCONNECT', { peerId: conn.peer });
+      console.log(`[Host] Peer disconnected: ${conn.peer} (Remaining: ${this.connections.size})`);
+      if (conn.playerInfo) {
+        this.notifyListeners({ type: 'PLAYER_DISCONNECT', payload: conn.playerInfo });
+        this.broadcastLocal('PLAYER_DISCONNECT', conn.playerInfo);
+      }
+      if (this.statusCallback) {
+        this.statusCallback({
+          status: 'connected',
+          roomCode: this.roomCode,
+          connectedCount: this.connections.size
+        });
+      }
     });
 
-    conn.on('error', () => {
+    conn.on('error', (err) => {
+      console.warn(`[Host] Error on peer connection ${conn.peer}:`, err);
       this.connections.delete(conn.peer);
     });
   }
 
-  /**
-   * Broadcast message to all connected WebRTC clients
-   */
-  broadcastToPeers(type, payload = {}) {
-    const data = { type, payload, timestamp: Date.now() };
-    this.connections.forEach((conn) => {
-      if (conn.open) {
-        try {
-          conn.send(data);
-        } catch (e) {
-          console.warn('Failed to send to peer', conn.peer, e);
-        }
-      }
-    });
-  }
-
-  /**
-   * Initializes Client (Mobile Buzzer) connection to Host Peer
-   */
-  initClientPeer(roomCode, playerData, onStatusChange) {
+  // ==========================================
+  // VIEWER PEER (Board / Projector Display)
+  // Connects to Host without colliding with Host ID
+  // ==========================================
+  initViewerPeer(roomCode, onStatusChange) {
+    this.role = 'viewer';
+    this.statusCallback = onStatusChange;
     this.roomCode = (roomCode || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
     const targetHostId = 'feud-room-' + this.roomCode;
 
     if (typeof Peer === 'undefined') {
-      if (onStatusChange) onStatusChange({ status: 'offline', message: 'WebRTC library not loaded' });
+      if (onStatusChange) onStatusChange({ status: 'offline', message: 'PeerJS script not loaded' });
       return;
     }
 
+    this.destroyPeer();
+
     try {
-      if (this.peer) this.peer.destroy();
       this.peer = new Peer({
+        host: '0.peerjs.com',
+        port: 443,
+        path: '/',
+        secure: true,
         debug: 1,
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:global.stun.twilio.com:3478' }
-          ]
-        }
+        config: { iceServers: this.getIceServers() }
       });
 
       this.peer.on('open', () => {
-        if (onStatusChange) onStatusChange({ status: 'connecting', message: 'Connecting to Host room...' });
-        this.hostConn = this.peer.connect(targetHostId, { reliable: true });
-
-        this.hostConn.on('open', () => {
-          this.isOnline = true;
-          if (onStatusChange) onStatusChange({ status: 'connected', message: 'Connected to Game!' });
-          // Send join announcement
-          this.sendToHost('PLAYER_JOIN', playerData);
-        });
-
-        this.hostConn.on('data', (data) => {
-          this.notifyListeners(data);
-        });
-
-        this.hostConn.on('close', () => {
-          this.isOnline = false;
-          if (onStatusChange) onStatusChange({ status: 'disconnected', message: 'Disconnected from Host' });
-        });
-
-        this.hostConn.on('error', (err) => {
-          if (onStatusChange) onStatusChange({ status: 'error', message: 'Connection error' });
-        });
+        this.connectViewerToHost(targetHostId);
       });
 
       this.peer.on('error', (err) => {
-        console.warn('Peer client error:', err);
-        if (onStatusChange) onStatusChange({ status: 'error', message: err.type });
+        console.warn('[Viewer] Peer error:', err);
+        if (err.type === 'peer-unavailable') {
+          if (this.statusCallback) this.statusCallback({ status: 'waiting-host', message: 'Host not online yet. Syncing locally...' });
+          // Schedule reconnect
+          this.scheduleViewerReconnect(targetHostId);
+        } else {
+          if (this.statusCallback) this.statusCallback({ status: 'error', message: err.type });
+        }
       });
     } catch (e) {
-      console.error('Client peer init error', e);
-      if (onStatusChange) onStatusChange({ status: 'offline', message: 'Unable to start Peer' });
+      console.error('[Viewer] Peer init error:', e);
+    }
+  }
+
+  connectViewerToHost(targetHostId) {
+    if (!this.peer || this.peer.destroyed) return;
+    if (this.statusCallback) this.statusCallback({ status: 'connecting', message: 'Connecting to Host room...' });
+
+    this.hostConn = this.peer.connect(targetHostId, { reliable: true });
+
+    this.hostConn.on('open', () => {
+      this.isOnline = true;
+      if (this.statusCallback) this.statusCallback({ status: 'connected', message: 'Connected to Host!' });
+      try {
+        this.hostConn.send({ type: 'VIEWER_JOIN', payload: { role: 'board' } });
+      } catch (e) {}
+    });
+
+    this.hostConn.on('data', (data) => {
+      if (data && data.type) {
+        this.notifyListeners(data);
+      }
+    });
+
+    this.hostConn.on('close', () => {
+      this.isOnline = false;
+      if (this.statusCallback) this.statusCallback({ status: 'disconnected', message: 'Lost connection to Host' });
+      this.scheduleViewerReconnect(targetHostId);
+    });
+
+    this.hostConn.on('error', (err) => {
+      console.warn('[Viewer] Host connection error:', err);
+    });
+  }
+
+  scheduleViewerReconnect(targetHostId) {
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = setTimeout(() => {
+      if (this.peer && !this.peer.destroyed) {
+        this.connectViewerToHost(targetHostId);
+      }
+    }, 4000);
+  }
+
+  // ==========================================
+  // CLIENT PEER (Player Mobile Buzzer)
+  // Connects to Host, sends PLAYER_JOIN, and auto-retries
+  // ==========================================
+  initClientPeer(roomCode, playerData, onStatusChange) {
+    this.role = 'client';
+    this.statusCallback = onStatusChange;
+    this.playerData = playerData;
+    this.roomCode = (roomCode || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    const targetHostId = 'feud-room-' + this.roomCode;
+
+    if (typeof Peer === 'undefined') {
+      if (onStatusChange) onStatusChange({ status: 'offline', message: 'PeerJS script not loaded' });
+      return;
+    }
+
+    this.destroyPeer();
+
+    try {
+      this.peer = new Peer({
+        host: '0.peerjs.com',
+        port: 443,
+        path: '/',
+        secure: true,
+        debug: 1,
+        config: { iceServers: this.getIceServers() }
+      });
+
+      this.peer.on('open', () => {
+        this.connectClientToHost(targetHostId);
+      });
+
+      this.peer.on('error', (err) => {
+        console.warn('[Client] Peer error:', err);
+        if (err.type === 'peer-unavailable') {
+          if (this.statusCallback) {
+            this.statusCallback({
+              status: 'reconnecting',
+              message: `Game room "${this.roomCode}" not found. Retrying in 3s...`,
+              roomCode: this.roomCode
+            });
+          }
+          this.scheduleClientReconnect(targetHostId);
+        } else {
+          if (this.statusCallback) this.statusCallback({ status: 'error', message: err.type, roomCode: this.roomCode });
+        }
+      });
+    } catch (e) {
+      console.error('[Client] Init error:', e);
+      if (this.statusCallback) this.statusCallback({ status: 'offline', message: 'Unable to start PeerJS' });
+    }
+  }
+
+  connectClientToHost(targetHostId) {
+    if (!this.peer || this.peer.destroyed) return;
+    if (this.statusCallback) {
+      this.statusCallback({ status: 'connecting', message: `Connecting to room ${this.roomCode}...`, roomCode: this.roomCode });
+    }
+
+    this.hostConn = this.peer.connect(targetHostId, { reliable: true });
+
+    this.hostConn.on('open', () => {
+      this.isOnline = true;
+      this.retryAttempts = 0;
+      console.log(`[Client] Connected to host ${targetHostId}!`);
+      if (this.statusCallback) {
+        this.statusCallback({ status: 'connected', message: 'Connected to Game!', roomCode: this.roomCode });
+      }
+
+      // Send join announcement
+      this.sendToHost('PLAYER_JOIN', this.playerData);
+    });
+
+    this.hostConn.on('data', (data) => {
+      if (!data || !data.type) return;
+
+      if (data.type === 'WELCOME_CLIENT') {
+        // Host requested announcement: send our player data to ensure registration
+        this.sendToHost('PLAYER_JOIN', this.playerData);
+        if (data.payload && data.payload.state) {
+          this.notifyListeners({ type: 'STATE_UPDATE', payload: data.payload.state });
+        }
+        return;
+      }
+
+      if (data.type === 'JOIN_CONFIRMED') {
+        if (this.statusCallback) {
+          this.statusCallback({ status: 'registered', message: 'Registered with Host!', roomCode: this.roomCode });
+        }
+        if (data.payload && data.payload.state) {
+          this.notifyListeners({ type: 'STATE_UPDATE', payload: data.payload.state });
+        }
+        return;
+      }
+
+      this.notifyListeners(data);
+    });
+
+    this.hostConn.on('close', () => {
+      this.isOnline = false;
+      console.warn('[Client] Disconnected from host');
+      if (this.statusCallback) {
+        this.statusCallback({
+          status: 'reconnecting',
+          message: 'Disconnected from Host. Reconnecting...',
+          roomCode: this.roomCode
+        });
+      }
+      this.scheduleClientReconnect(targetHostId);
+    });
+
+    this.hostConn.on('error', (err) => {
+      console.warn('[Client] Host connection error:', err);
+    });
+  }
+
+  scheduleClientReconnect(targetHostId) {
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.retryAttempts >= this.maxRetries) {
+      if (this.statusCallback) {
+        this.statusCallback({
+          status: 'failed',
+          message: 'Connection timed out. Tap "Retry Connection" below.',
+          roomCode: this.roomCode
+        });
+      }
+      return;
+    }
+
+    this.retryAttempts++;
+    this.reconnectTimer = setTimeout(() => {
+      console.log(`[Client] Reconnect attempt ${this.retryAttempts}/${this.maxRetries}...`);
+      this.connectClientToHost(targetHostId);
+    }, 3500);
+  }
+
+  retryClientNow() {
+    this.retryAttempts = 0;
+    if (this.peer && !this.peer.destroyed) {
+      this.connectClientToHost('feud-room-' + this.roomCode);
+    } else {
+      this.initClientPeer(this.roomCode, this.playerData, this.statusCallback);
     }
   }
 
@@ -238,6 +530,20 @@ class SyncEngine {
     }
     // Also broadcast on local channel in case client is on same machine
     this.broadcastLocal(type, payload);
+  }
+
+  // --- Broadcast to all connected peers (Host only) ---
+  broadcastToPeers(type, payload = {}) {
+    const data = { type, payload, timestamp: Date.now() };
+    this.connections.forEach((conn) => {
+      if (conn.open) {
+        try {
+          conn.send(data);
+        } catch (e) {
+          console.warn('Failed to send to peer', conn.peer, e);
+        }
+      }
+    });
   }
 
   // --- Combined Broadcast (Local + WebRTC) ---

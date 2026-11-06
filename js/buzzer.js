@@ -1,6 +1,6 @@
 /**
  * Mobile Player Buzzer Controller
- * Enhanced for Custom Team Names and General Family Feud.
+ * Enhanced for Custom Team Names, General Family Feud, and Robust WebRTC Synchronization.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const team1ChoiceBtn = document.getElementById('team1ChoiceBtn');
   const team2ChoiceBtn = document.getElementById('team2ChoiceBtn');
   const joinGameBtn = document.getElementById('joinGameBtn');
+  const joinStatusMsg = document.getElementById('joinStatusMsg');
 
   // DOM Elements - Buzzer View
   const playerDisplayName = document.getElementById('playerDisplayName');
@@ -24,17 +25,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const giantBuzzerBtn = document.getElementById('giantBuzzerBtn');
   const buzzerStatusText = document.getElementById('buzzerStatusText');
   const clientStatusBadge = document.getElementById('clientStatusBadge');
+  const buzzerRoomCodeTag = document.getElementById('buzzerRoomCodeTag');
   const currentRoundTag = document.getElementById('currentRoundTag');
+  const buzzerDisconnectAlert = document.getElementById('buzzerDisconnectAlert');
+  const buzzerDisconnectText = document.getElementById('buzzerDisconnectText');
+  const buzzerReconnectBtn = document.getElementById('buzzerReconnectBtn');
 
   let selectedTeam = 1;
   let playerInfo = null;
   let hasBuzzedThisTurn = false;
   let currentGameState = null;
+  let activeRoom = 'FEUD';
+  let pingInterval = null;
 
   // Check URL query parameters for room code
   const urlParams = new URLSearchParams(window.location.search);
-  const initialRoom = urlParams.get('room') || 'FEUD';
+  const initialRoom = (urlParams.get('room') || 'FEUD').toUpperCase().trim();
+  activeRoom = initialRoom;
   if (roomCodeInput) roomCodeInput.value = initialRoom;
+  if (buzzerRoomCodeTag) buzzerRoomCodeTag.textContent = initialRoom;
 
   // Check saved player info from localStorage
   const savedPlayer = localStorage.getItem('feud_player_profile');
@@ -78,12 +87,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const name = (playerNameInput ? playerNameInput.value : '').trim();
       if (!name) {
         alert('Please enter your player name!');
+        if (playerNameInput) playerNameInput.focus();
         return;
       }
-      const room = ((roomCodeInput ? roomCodeInput.value : '') || 'FEUD').toUpperCase().trim();
+      activeRoom = ((roomCodeInput ? roomCodeInput.value : '') || 'FEUD').toUpperCase().trim();
 
       playerInfo = {
-        playerId: 'p-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+        playerId: 'p-' + Date.now() + '-' + Math.floor(Math.random() * 10000),
         playerName: name,
         team: selectedTeam,
         joinedAt: Date.now()
@@ -93,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('feud_player_profile', JSON.stringify({ name, team: selectedTeam }));
       } catch (e) {}
 
-      enterBuzzerView(room);
+      enterBuzzerView(activeRoom);
     });
   }
 
@@ -102,23 +112,73 @@ document.addEventListener('DOMContentLoaded', () => {
     if (buzzerView) buzzerView.style.display = 'flex';
 
     if (playerDisplayName) playerDisplayName.textContent = playerInfo.playerName;
+    if (buzzerRoomCodeTag) buzzerRoomCodeTag.textContent = room;
     updatePlayerTeamDisplay();
 
     // Connect via SyncEngine
     sync.initClientPeer(room, playerInfo, (status) => {
-      if (!clientStatusBadge) return;
-      if (status.status === 'connected') {
-        clientStatusBadge.className = 'badge badge-green';
-        clientStatusBadge.textContent = 'Connected';
-      } else if (status.status === 'connecting') {
-        clientStatusBadge.className = 'badge badge-gold';
-        clientStatusBadge.textContent = 'Connecting...';
-      } else {
-        clientStatusBadge.className = 'badge badge-red';
-        clientStatusBadge.textContent = 'Offline / Local';
+      handleConnectionStatus(status);
+    });
+
+    // Start background ping keepalive for mobile screen sleep prevention
+    if (pingInterval) clearInterval(pingInterval);
+    pingInterval = setInterval(() => {
+      if (sync.isOnline) {
+        sync.sendToHost('PING', { playerId: playerInfo.playerId });
+      }
+    }, 12000);
+  }
+
+  function handleConnectionStatus(status) {
+    if (!clientStatusBadge) return;
+
+    if (status.status === 'connected' || status.status === 'registered') {
+      clientStatusBadge.className = 'badge badge-green';
+      clientStatusBadge.textContent = '🟢 Online';
+      if (buzzerDisconnectAlert) buzzerDisconnectAlert.style.display = 'none';
+    } else if (status.status === 'connecting') {
+      clientStatusBadge.className = 'badge badge-gold';
+      clientStatusBadge.textContent = '🟡 Connecting...';
+      if (buzzerDisconnectAlert) buzzerDisconnectAlert.style.display = 'none';
+    } else if (status.status === 'reconnecting') {
+      clientStatusBadge.className = 'badge badge-gold';
+      clientStatusBadge.textContent = '🟡 Retrying...';
+      if (buzzerDisconnectAlert) buzzerDisconnectAlert.style.display = 'flex';
+      if (buzzerDisconnectText) buzzerDisconnectText.textContent = status.message || 'Connecting to Game Host...';
+    } else {
+      clientStatusBadge.className = 'badge badge-red';
+      clientStatusBadge.textContent = '🔴 Offline';
+      if (buzzerDisconnectAlert) buzzerDisconnectAlert.style.display = 'flex';
+      if (buzzerDisconnectText) buzzerDisconnectText.textContent = status.message || 'Connection lost. Tap Reconnect.';
+    }
+  }
+
+  // Tap to Reconnect buttons
+  if (buzzerReconnectBtn) {
+    buzzerReconnectBtn.addEventListener('click', () => {
+      sync.retryClientNow();
+    });
+  }
+  if (clientStatusBadge) {
+    clientStatusBadge.addEventListener('click', () => {
+      if (!sync.isOnline) {
+        sync.retryClientNow();
       }
     });
   }
+
+  // Screen unlock / browser tab refocus auto-reconnect
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && playerInfo) {
+      if (!sync.isOnline) {
+        console.log('[Buzzer] Tab resumed from background, checking connection...');
+        sync.retryClientNow();
+      } else {
+        // Send a quick ping/announcement to confirm registration
+        sync.sendToHost('PLAYER_JOIN', playerInfo);
+      }
+    }
+  });
 
   function updatePlayerTeamDisplay() {
     if (!playerInfo || !playerDisplayTeam) return;
@@ -139,7 +199,9 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
 
       case 'SHOW_STRIKE':
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        if (navigator.vibrate) {
+          try { navigator.vibrate([200, 100, 200]); } catch(e){}
+        }
         break;
     }
   });
@@ -230,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hasBuzzedThisTurn = true;
 
     if (navigator.vibrate) {
-      navigator.vibrate([150]);
+      try { navigator.vibrate([150]); } catch(e) {}
     }
 
     sound.playBuzzerHit();

@@ -21,10 +21,12 @@
 
     <!-- Room & Quick Launchers -->
     <div class="header-actions">
-      <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;align-items:center;gap:6px;">
         <span style="font-size:0.85rem;color:var(--text-muted);font-weight:800;font-family:var(--font-display);">ROOM:</span>
-        <input type="text" id="roomCodeInput" class="form-input" style="width:110px;padding:6px 10px;font-size:0.9rem;font-weight:800;text-transform:uppercase;" value="FEUD">
-        <button id="setRoomBtn" class="icon-btn" style="padding:6px 10px;">Set</button>
+        <input type="text" id="roomCodeInput" class="form-input" style="width:95px;padding:6px 8px;font-size:0.9rem;font-weight:800;text-transform:uppercase;" value="FEUD">
+        <button id="setRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Set Custom Room Code">Set</button>
+        <button id="randomRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Generate Clean Random Room Code">🎲 New</button>
+        <button id="reconnectWebRtcBtn" class="icon-btn" style="padding:6px 10px;" title="Reconnect WebRTC Signaling">🔄 Reconnect</button>
       </div>
 
       <button id="showQrBtn" class="icon-btn">📱 Buzzer QR Code</button>
@@ -333,7 +335,10 @@
       <section class="control-card">
         <div class="card-title">
           <span>👥 Players Roster</span>
-          <span class="badge badge-gold" id="connectedCount">0</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span class="badge badge-gold" id="connectedCount">0</span>
+            <button id="clearRosterBtn" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;" title="Clear connected players list">Clear Roster</button>
+          </div>
         </div>
         <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px;">
           Unlimited players can connect live. Designate captains or switch teams anytime:
@@ -373,6 +378,11 @@
         <canvas id="qrCanvas" style="border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.5);"></canvas>
       </div>
       <div id="qrJoinUrl" style="word-break:break-all;font-size:0.8rem;font-weight:700;color:var(--gold-glow);background:rgba(0,0,0,0.4);padding:8px;border-radius:4px;margin-bottom:14px;"></div>
+      <div id="qrFileProtocolNotice" style="display:none;background:rgba(231,76,60,0.15);border:1px solid #e74c3c;border-radius:6px;padding:10px;margin-bottom:14px;font-size:0.82rem;color:#ff7675;text-align:left;">
+        ⚠️ <strong>Notice:</strong> You opened this page directly from a local file (`file://`). Smartphone cameras cannot open local files on your computer.<br><br>
+        To play across different phones, open your hosted site:<br>
+        <a href="https://matthewchongg.github.io/friendly-feud/admin.html" target="_blank" style="color:var(--gold-primary);font-weight:700;">https://matthewchongg.github.io/friendly-feud/admin.html</a>
+      </div>
       <button class="btn-primary close-modal-btn" style="width:100%;">Done</button>
     </div>
   </div>
