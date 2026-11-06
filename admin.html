@@ -21,7 +21,7 @@
 
     <!-- Room & Quick Launchers -->
     <div class="header-actions">
-      <div style="display:flex;align-items:center;gap:6px;">
+      <div class="room-input-group">
         <span style="font-size:0.85rem;color:var(--text-muted);font-weight:800;font-family:var(--font-display);">ROOM:</span>
         <input type="text" id="roomCodeInput" class="form-input" style="width:95px;padding:6px 8px;font-size:0.9rem;font-weight:800;text-transform:uppercase;" value="FEUD">
         <button id="setRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Set Custom Room Code">Set</button>
@@ -36,6 +36,15 @@
       <button id="passwordSettingsBtn" class="icon-btn" title="Admin Password Settings">🔑 Password</button>
     </div>
   </header>
+
+  <!-- Mobile Quick Jump Bar (Sticky navigation for small screens) -->
+  <nav class="mobile-quick-nav">
+    <button type="button" class="mobile-nav-btn active" data-target="faceoffCard">⚡ Face-Off</button>
+    <button type="button" class="mobile-nav-btn" data-target="boardPlayCard">🎯 Board</button>
+    <button type="button" class="mobile-nav-btn" data-target="teamsRosterCard">👥 Rosters</button>
+    <button type="button" class="mobile-nav-btn" data-target="soundFxCard">🔊 Sounds</button>
+    <button type="button" class="mobile-nav-btn" id="mobileOpenQuestionsBtn">📚 Questions</button>
+  </nav>
 
   <main class="admin-main">
     <!-- Main Left Column -->
@@ -64,7 +73,7 @@
           </div>
         </div>
 
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div class="round-manager-actions">
           <button id="nextRoundBtn" class="btn-secondary" style="font-size:0.85rem;">Next Round ➔</button>
           <button id="resetRoundBtn" class="btn-secondary" style="font-size:0.85rem;">🔄 Reset Round</button>
           <button id="declareWinnerBtn" class="btn-primary" style="font-size:0.85rem;">🏆 Declare Grand Winner</button>
@@ -72,7 +81,7 @@
       </section>
 
       <!-- 3: The Face-Off Helper Card (Specific Rules) -->
-      <section class="control-card accent-gold">
+      <section class="control-card accent-gold" id="faceoffCard">
         <div class="card-title">
           <span>⚡ The Face-Off Podiums</span>
           <span id="faceoffStatusText" style="font-size:0.85rem;color:var(--gold-glow);font-weight:700;">Podiums Ready. Arm buzzers to start.</span>
@@ -114,13 +123,13 @@
       </section>
 
       <!-- 4: Board Play & Strikes Supervisor -->
-      <section class="control-card">
+      <section class="control-card" id="boardPlayCard">
         <div class="card-title">
           <span>🎯 Playing the Board</span>
           <span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">No consultation during board play!</span>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;">
+        <div class="board-play-grid">
           <!-- Controlling Team & Turn -->
           <div style="background:rgba(0,0,0,0.35);padding:12px 16px;border-radius:var(--radius-sm);">
             <div style="font-size:0.85rem;font-weight:800;color:var(--gold-glow);margin-bottom:6px;font-family:var(--font-display);">Controlling Team:</div>
@@ -152,8 +161,8 @@
         </div>
 
         <!-- Strikes Supervisor -->
-        <div style="background:rgba(235,47,6,0.12);border:1px solid rgba(235,47,6,0.35);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:14px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="strikes-supervisor-box" style="background:rgba(235,47,6,0.12);border:1px solid rgba(235,47,6,0.35);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:14px;">
+          <div class="strikes-container-row" style="display:flex;justify-content:space-between;align-items:center;">
             <div style="display:flex;align-items:center;gap:14px;">
               <span style="font-weight:900;color:var(--strike-red);font-size:1rem;text-transform:uppercase;font-family:var(--font-display);">Strikes:</span>
               <div class="strike-display-box" id="strikeCountDisplay">
@@ -163,7 +172,7 @@
               </div>
             </div>
 
-            <div style="display:flex;gap:8px;">
+            <div class="strikes-buttons" style="display:flex;gap:8px;">
               <button id="addStrike1Btn" class="btn-danger" style="padding:7px 14px;font-size:0.88rem;">+1 Strike (X)</button>
               <button id="addStrike2Btn" class="btn-danger" style="padding:7px 14px;font-size:0.88rem;">+2 (XX)</button>
               <button id="addStrike3Btn" class="btn-danger" style="padding:7px 14px;font-size:0.88rem;">+3 (XXX)</button>
@@ -213,13 +222,13 @@
       </section>
 
       <!-- 5: The Steal Phase Card -->
-      <section class="control-card accent-steal">
+      <section class="control-card accent-steal" id="stealPhaseCard">
         <div class="card-title" style="color:#ff7675;">
           <span>🚨 The Steal Phase (Upon 3 Strikes)</span>
           <span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">Opposing team gets 15s group conferral</span>
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.35);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.35);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">
           <div>
             <div style="font-size:0.92rem;font-weight:800;color:#fff;font-family:var(--font-display);">15s Conferral Countdown:</div>
             <div style="font-size:0.85rem;color:var(--text-muted);">Designated Captain must present the team's agreed answer.</div>
@@ -227,7 +236,7 @@
           <button id="startSteal15Btn" class="btn-primary" style="padding:9px 18px;font-size:0.92rem;">▶ Start 15s Conferral Timer</button>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="steal-buttons-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
           <button id="stealSuccessBtn" class="btn-primary" style="background:#2ecc71;border-color:#27ae60;font-size:0.9rem;padding:12px;">
             ✅ Steal SUCCESSFUL (Answer on Board)<br>
             <span style="font-size:0.8rem;font-weight:normal;opacity:0.95;">All bank points transferred to Stealing Team!</span>
@@ -240,7 +249,7 @@
       </section>
 
       <!-- 6: Bank & Score Adjustment -->
-      <section class="control-card">
+      <section class="control-card" id="scoresCard">
         <div class="card-title">
           <span>💰 Bank & Scores</span>
           <div>
@@ -249,18 +258,18 @@
           </div>
         </div>
 
-        <div style="display:flex;gap:10px;margin-bottom:14px;">
-          <button id="awardBankTeam1Btn" class="btn-primary" style="flex:1;background:rgba(46, 204, 113, 0.35);border-color:#2ecc71;color:#2ecc71;font-size:0.9rem;">
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+          <button id="awardBankTeam1Btn" class="btn-primary" style="flex:1;min-width:140px;background:rgba(46, 204, 113, 0.35);border-color:#2ecc71;color:#2ecc71;font-size:0.9rem;">
             Award Bank ➔ Team 1
           </button>
-          <button id="awardBankTeam2Btn" class="btn-primary" style="flex:1;background:rgba(255, 82, 82, 0.35);border-color:#ff5252;color:#ff7675;font-size:0.9rem;">
+          <button id="awardBankTeam2Btn" class="btn-primary" style="flex:1;min-width:140px;background:rgba(255, 82, 82, 0.35);border-color:#ff5252;color:#ff7675;font-size:0.9rem;">
             Award Bank ➔ Team 2
           </button>
           <button id="clearBankBtn" class="btn-secondary" style="font-size:0.9rem;">Clear Bank</button>
         </div>
 
         <!-- Manual Score Tweaks -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;background:rgba(0,0,0,0.3);padding:12px;border-radius:var(--radius-sm);">
+        <div class="manual-scores-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;background:rgba(0,0,0,0.3);padding:12px;border-radius:var(--radius-sm);">
           <div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <span style="font-family:var(--font-display);font-size:1.15rem;font-weight:800;color:#2ecc71;">Team 1 Score</span>
@@ -311,7 +320,7 @@
       </section>
 
       <!-- Connected Players & Teams Roster (Unlimited Players) -->
-      <section class="control-card">
+      <section class="control-card" id="teamsRosterCard">
         <div class="card-title">
           <span>👥 Teams & Rosters</span>
           <div style="display:flex;gap:6px;align-items:center;">
@@ -359,7 +368,7 @@
       </section>
 
       <!-- Audio Effects Soundboard -->
-      <section class="control-card">
+      <section class="control-card" id="soundFxCard">
         <div class="card-title">
           <span>🔊 Game Show SFX</span>
           <button id="sfxMute" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;">🔊 Sound: On</button>

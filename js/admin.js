@@ -164,19 +164,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- WebRTC & Sync Setup ---
   function initRoom() {
-    const code = (state.roomCode || 'FEUD').toUpperCase().trim();
+    let code = (state.roomCode || '').toUpperCase().trim();
+    // Auto-generate unique room code if still default 'FEUD' so users around the world never collide
+    if (!code || code === 'FEUD') {
+      const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      code = 'FF-';
+      for (let i = 0; i < 4; i++) {
+        code += letters.charAt(Math.floor(Math.random() * letters.length));
+      }
+      state.roomCode = code;
+    }
     if (roomCodeInput) roomCodeInput.value = code;
+
+    if (webrtcStatusEl) {
+      webrtcStatusEl.className = 'badge badge-gold';
+      webrtcStatusEl.textContent = `🟡 Connecting: ${code}...`;
+    }
 
     sync.initHostPeer(code, (evt) => {
       if (!webrtcStatusEl) return;
       if (evt.status === 'connected') {
         webrtcStatusEl.className = 'badge badge-green';
-        webrtcStatusEl.textContent = `🟢 Online: ${code} (${evt.connectedCount || 0} buzzers)`;
-        webrtcStatusEl.title = `Host active. Peer ID: feud-room-${code}. Devices connected: ${evt.connectedCount || 0}`;
+        webrtcStatusEl.textContent = `🟢 Online: ${evt.roomCode || code} (${evt.connectedCount || 0} buzzers)`;
+        webrtcStatusEl.title = `Host active. Peer ID: feud-room-${evt.roomCode || code}. Devices connected: ${evt.connectedCount || 0}`;
+        if (roomCodeInput) roomCodeInput.value = evt.roomCode || code;
+        state.roomCode = evt.roomCode || code;
+      } else if (evt.status === 'connecting') {
+        webrtcStatusEl.className = 'badge badge-gold';
+        webrtcStatusEl.textContent = `🟡 Connecting: ${code}...`;
+      } else if (evt.status === 'slow-connection') {
+        webrtcStatusEl.className = 'badge badge-gold';
+        webrtcStatusEl.textContent = `⚠️ Busy Server (Tap 🎲 New)`;
+        webrtcStatusEl.title = evt.message;
       } else if (evt.status === 'id-taken') {
         webrtcStatusEl.className = 'badge badge-gold';
-        webrtcStatusEl.textContent = `⚠️ Room "${code}" Busy (Click "🎲 New")`;
-        webrtcStatusEl.title = 'Room code is occupied or clearing. Click "🎲 New" for a fresh room code.';
+        webrtcStatusEl.textContent = `⚠️ Switching to ${evt.suggestedCode || code}...`;
+        if (evt.suggestedCode) {
+          state.roomCode = evt.suggestedCode;
+          if (roomCodeInput) roomCodeInput.value = evt.suggestedCode;
+        }
       } else if (evt.status === 'disconnected') {
         webrtcStatusEl.className = 'badge badge-gold';
         webrtcStatusEl.textContent = '🟡 Reconnecting...';
@@ -1057,6 +1083,26 @@ document.addEventListener('DOMContentLoaded', () => {
   if (openBuzzerBtn) {
     openBuzzerBtn.addEventListener('click', () => {
       window.open(`buzzer.html?room=${encodeURIComponent(state.roomCode)}`, '_blank');
+    });
+  }
+
+  // Mobile Quick Navigation Pills
+  document.querySelectorAll('.mobile-nav-btn[data-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-target');
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    });
+  });
+
+  const mobileOpenQuestionsBtn = document.getElementById('mobileOpenQuestionsBtn');
+  if (mobileOpenQuestionsBtn && questionsModalEl) {
+    mobileOpenQuestionsBtn.addEventListener('click', () => {
+      questionsModalEl.classList.add('active');
     });
   }
 

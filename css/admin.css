@@ -564,9 +564,296 @@
   padding: 8px 0;
 }
 
-@media (max-width: 1000px) {
+/* Mobile Quick Jump Bar (Sticky navigation for small screens) */
+.mobile-quick-nav {
+  display: none;
+}
+
+.room-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 850px) {
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .brand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .brand-logo {
+    font-size: 1.35rem;
+  }
+
+  .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .room-input-group {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .room-input-group .form-input {
+    flex: 1;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .header-actions .icon-btn {
+    flex: 1 1 calc(50% - 6px);
+    justify-content: center;
+    font-size: 0.8rem;
+    padding: 8px 6px;
+    white-space: nowrap;
+  }
+
+  /* Show Sticky Quick Jump Bar on Mobile & Tablet */
+  .mobile-quick-nav {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: rgba(5, 15, 40, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 2px solid rgba(246, 185, 59, 0.35);
+    padding: 8px 10px;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .mobile-quick-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-nav-btn {
+    flex: 0 0 auto;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 20px;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 7px 13px;
+    white-space: nowrap;
+    font-family: var(--font-display);
+    transition: all 0.18s ease;
+  }
+
+  .mobile-nav-btn.active {
+    background: var(--gold-primary);
+    color: #071330;
+    border-color: var(--gold-border);
+    box-shadow: 0 0 10px rgba(246, 185, 59, 0.5);
+  }
+
   .admin-main {
     grid-template-columns: 1fr;
+    padding: 12px 10px;
+    gap: 16px;
+  }
+
+  .round-manager-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 14px;
+    gap: 12px;
+  }
+
+  .round-selector-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .round-manager-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .round-manager-actions #declareWinnerBtn {
+    grid-column: span 2;
+  }
+
+  .faceoff-actions-bar .action-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .board-play-grid {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .strikes-container-row {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+  }
+
+  .strikes-buttons {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .strikes-buttons button {
+    padding: 10px 4px !important;
+    font-size: 0.78rem !important;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .active-q-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .active-q-header > div {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .steal-buttons-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .manual-scores-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Modal Mobile Responsiveness */
+  .modal-card {
+    width: 95% !important;
+    max-width: 95% !important;
+    padding: 16px 12px !important;
+    max-height: 90vh !important;
+  }
+
+  .modal-tabs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+  }
+
+  .modal-tab-btn {
+    font-size: 0.76rem !important;
+    padding: 8px 6px !important;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .builder-row {
+    grid-template-columns: 30px 1fr 65px 34px !important;
+    gap: 4px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-main {
+    padding: 8px 6px;
+    gap: 10px;
+  }
+
+  .control-card {
+    padding: 12px 10px;
+    margin-bottom: 12px;
+    border-radius: var(--radius-sm);
+  }
+
+  .card-title {
+    font-size: 1.1rem;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .faceoff-podium-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .podium-box {
+    padding: 8px 4px;
+  }
+
+  .podium-title {
+    font-size: 0.75rem;
+  }
+
+  .podium-player-name {
+    font-size: 1.1rem;
+  }
+
+  .buzzer-arm-bar {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .buzzer-arm-bar .btn-primary {
+    font-size: 1rem;
+    padding: 12px 10px;
+  }
+
+  .active-q-title {
+    font-size: 1.05rem !important;
+    padding: 10px 12px !important;
+  }
+
+  .sound-fx-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .sfx-btn {
+    padding: 10px 6px;
+    font-size: 0.8rem;
+  }
+
+  .player-roster-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .player-roster-item .roster-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .admin-auth-card {
+    padding: 24px 16px;
   }
 }
 
@@ -584,7 +871,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
 }
 
 .admin-auth-card {

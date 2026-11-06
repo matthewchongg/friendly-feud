@@ -1,6 +1,7 @@
 /**
  * Family Feud Synchronization Engine
  * Combines BroadcastChannel (same machine / dual screen) + PeerJS WebRTC (mobile buzzers & remote boards over internet/LAN)
+ * Enhanced with connection timeout watchdogs, auto-recovery on room collisions, and multi-STUN servers.
  */
 
 class SyncEngine {
@@ -16,12 +17,13 @@ class SyncEngine {
     this.playerData = null;
     this.statusCallback = null;
     this.reconnectTimer = null;
+    this.connectWatchdog = null;
     this.retryAttempts = 0;
     this.maxRetries = 10;
 
     this.initBroadcastChannel();
 
-    // Auto-cleanup peer on page unload so room ID is released immediately on 0.peerjs.com
+    // Auto-cleanup peer on page unload so room ID is released immediately
     window.addEventListener('beforeunload', () => {
       this.destroyPeer();
     });
@@ -31,6 +33,10 @@ class SyncEngine {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+    }
+    if (this.connectWatchdog) {
+      clearTimeout(this.connectWatchdog);
+      this.connectWatchdog = null;
     }
     if (this.hostConn) {
       try { this.hostConn.close(); } catch(e){}
@@ -99,6 +105,8 @@ class SyncEngine {
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
       { urls: 'stun:stun.cloudflare.com:3478' }
     ];
   }
@@ -120,17 +128,33 @@ class SyncEngine {
 
     this.destroyPeer();
 
+    if (this.statusCallback) {
+      this.statusCallback({ status: 'connecting', roomCode: this.roomCode, message: 'Connecting to Cloud...' });
+    }
+
     try {
+      // 7-second watchdog alert if cloud handshake is delayed
+      this.connectWatchdog = setTimeout(() => {
+        if (!this.isOnline) {
+          console.warn('[Host] Cloud signaling taking longer than expected');
+          if (this.statusCallback) {
+            this.statusCallback({
+              status: 'slow-connection',
+              roomCode: this.roomCode,
+              message: 'Connecting is taking longer than usual. If busy, tap "🎲 New" for a fresh room code.'
+            });
+          }
+        }
+      }, 7000);
+
+      // Use default PeerJS cloud brokering without custom host override
       this.peer = new Peer(peerId, {
-        host: '0.peerjs.com',
-        port: 443,
-        path: '/',
-        secure: true,
         debug: 1,
         config: { iceServers: this.getIceServers() }
       });
 
       this.peer.on('open', (id) => {
+        if (this.connectWatchdog) clearTimeout(this.connectWatchdog);
         this.isOnline = true;
         this.retryAttempts = 0;
         console.log(`[Host] WebRTC Room online with ID: ${id}`);
@@ -149,25 +173,25 @@ class SyncEngine {
       });
 
       this.peer.on('error', (err) => {
+        if (this.connectWatchdog) clearTimeout(this.connectWatchdog);
         console.warn('[Host] PeerJS notice:', err);
         if (err.type === 'unavailable-id') {
-          // The ID is still occupied on the signaling server (e.g. recent refresh or duplicate tab)
+          // The ID is occupied on the shared cloud server: auto-recover with fresh unique code
           this.isOnline = false;
+          const nextRoomCode = this.roomCode + Math.floor(Math.random() * 90 + 10);
+          console.warn(`[Host] Room ID ${this.roomCode} occupied. Auto-switching to ${nextRoomCode}...`);
           if (this.statusCallback) {
             this.statusCallback({
               status: 'id-taken',
               roomCode: this.roomCode,
-              message: `Room "${this.roomCode}" is currently busy or releasing. Waiting to reconnect...`
+              suggestedCode: nextRoomCode,
+              message: `Room "${this.roomCode}" is currently busy. Auto-switching to "${nextRoomCode}"...`
             });
           }
-          // Attempt auto-retry after brief timeout
-          if (this.retryAttempts < 4) {
-            this.retryAttempts++;
-            this.reconnectTimer = setTimeout(() => {
-              console.log(`[Host] Retrying host room registration (Attempt ${this.retryAttempts})...`);
-              this.initHostPeer(this.roomCode, this.statusCallback);
-            }, 3000);
-          }
+          this.roomCode = nextRoomCode;
+          this.reconnectTimer = setTimeout(() => {
+            this.initHostPeer(this.roomCode, this.statusCallback);
+          }, 1200);
         } else {
           if (this.statusCallback) {
             this.statusCallback({ status: 'error', errorType: err.type, message: err.message || err.type });
@@ -176,6 +200,7 @@ class SyncEngine {
       });
 
       this.peer.on('disconnected', () => {
+        if (this.connectWatchdog) clearTimeout(this.connectWatchdog);
         this.isOnline = false;
         console.warn('[Host] PeerJS disconnected from server, attempting reconnect...');
         if (this.statusCallback) this.statusCallback({ status: 'disconnected', message: 'Reconnecting to PeerJS cloud...' });
@@ -307,10 +332,6 @@ class SyncEngine {
 
     try {
       this.peer = new Peer({
-        host: '0.peerjs.com',
-        port: 443,
-        path: '/',
-        secure: true,
         debug: 1,
         config: { iceServers: this.getIceServers() }
       });
@@ -323,7 +344,6 @@ class SyncEngine {
         console.warn('[Viewer] Peer error:', err);
         if (err.type === 'peer-unavailable') {
           if (this.statusCallback) this.statusCallback({ status: 'waiting-host', message: 'Host not online yet. Syncing locally...' });
-          // Schedule reconnect
           this.scheduleViewerReconnect(targetHostId);
         } else {
           if (this.statusCallback) this.statusCallback({ status: 'error', message: err.type });
@@ -394,10 +414,6 @@ class SyncEngine {
 
     try {
       this.peer = new Peer({
-        host: '0.peerjs.com',
-        port: 443,
-        path: '/',
-        secure: true,
         debug: 1,
         config: { iceServers: this.getIceServers() }
       });
@@ -433,9 +449,24 @@ class SyncEngine {
       this.statusCallback({ status: 'connecting', message: `Connecting to room ${this.roomCode}...`, roomCode: this.roomCode });
     }
 
+    const handshakeWatchdog = setTimeout(() => {
+      if (!this.isOnline) {
+        console.warn('[Client] Handshake timeout with host');
+        if (this.statusCallback) {
+          this.statusCallback({
+            status: 'reconnecting',
+            message: 'Connecting is taking longer than expected. Retrying...',
+            roomCode: this.roomCode
+          });
+        }
+        this.scheduleClientReconnect(targetHostId);
+      }
+    }, 7000);
+
     this.hostConn = this.peer.connect(targetHostId, { reliable: true });
 
     this.hostConn.on('open', () => {
+      clearTimeout(handshakeWatchdog);
       this.isOnline = true;
       this.retryAttempts = 0;
       console.log(`[Client] Connected to host ${targetHostId}!`);
@@ -473,6 +504,7 @@ class SyncEngine {
     });
 
     this.hostConn.on('close', () => {
+      clearTimeout(handshakeWatchdog);
       this.isOnline = false;
       console.warn('[Client] Disconnected from host');
       if (this.statusCallback) {
@@ -486,6 +518,7 @@ class SyncEngine {
     });
 
     this.hostConn.on('error', (err) => {
+      clearTimeout(handshakeWatchdog);
       console.warn('[Client] Host connection error:', err);
     });
   }
