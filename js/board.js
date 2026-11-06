@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (boardQrUrl) boardQrUrl.textContent = finalUrl;
         if (window.QRCodeRenderer && boardQrCanvas) {
-          window.QRCodeRenderer.toCanvas(boardQrCanvas, finalUrl, { width: 220, colorDark: '#071330' });
+          window.QRCodeRenderer.toCanvas(boardQrCanvas, finalUrl, { width: 220, colorDark: '#000000' });
         }
         if (boardQrModal) boardQrModal.classList.add('active');
       } catch (e) {

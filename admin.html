@@ -385,7 +385,9 @@
       </div>
       <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:14px;">Scan with smartphone camera to connect buzzer directly to this room:</p>
       <div style="display:flex;justify-content:center;margin-bottom:14px;">
-        <canvas id="qrCanvas" style="border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.5);"></canvas>
+        <div style="background:#ffffff;padding:12px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.45);display:inline-flex;">
+          <canvas id="qrCanvas" style="display:block;"></canvas>
+        </div>
       </div>
       <div id="qrJoinUrl" style="word-break:break-all;font-size:0.8rem;font-weight:700;color:var(--gold-glow);background:rgba(0,0,0,0.4);padding:8px;border-radius:4px;margin-bottom:14px;"></div>
       <div id="qrFileProtocolNotice" style="display:none;background:rgba(231,76,60,0.15);border:1px solid #e74c3c;border-radius:6px;padding:10px;margin-bottom:14px;font-size:0.82rem;color:#ff7675;text-align:left;">

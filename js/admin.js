@@ -1071,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (qrJoinUrlEl) qrJoinUrlEl.textContent = finalUrl;
 
         if (window.QRCodeRenderer && qrCanvas) {
-          window.QRCodeRenderer.toCanvas(qrCanvas, finalUrl, { width: 220, colorDark: '#071330' });
+          window.QRCodeRenderer.toCanvas(qrCanvas, finalUrl, { width: 220, colorDark: '#000000' });
         }
 
         const fileNoticeEl = document.getElementById('qrFileProtocolNotice');
