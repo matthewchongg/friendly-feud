@@ -97,8 +97,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       activeRoom = ((roomCodeInput ? roomCodeInput.value : '') || 'FEUD').toUpperCase().trim();
 
+      let pid = localStorage.getItem('feud_player_id');
+      if (!pid) {
+        pid = 'p-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+        localStorage.setItem('feud_player_id', pid);
+      }
+
       playerInfo = {
-        playerId: 'p-' + Date.now() + '-' + Math.floor(Math.random() * 10000),
+        playerId: pid,
         playerName: name,
         team: selectedTeam,
         joinedAt: Date.now()
@@ -258,10 +264,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const isArmed = state.faceOff && state.faceOff.buzzerArmed;
     const hasWinner = state.faceOff && state.faceOff.buzzWinner;
 
+    const myTeamPlayers = (state.connectedPlayers && playerInfo) ? state.connectedPlayers.filter(p => p.team === playerInfo.team) : [];
+    const isSinglePlayer = myTeamPlayers.length <= 1;
+    const headId = playerInfo ? (playerInfo.team === 1 ? state.faceOff?.headPlayerTeam1 : state.faceOff?.headPlayerTeam2) : null;
+
     const isHead = playerInfo && state.faceOff && (
-      (playerInfo.team === 1 && state.faceOff.headPlayerTeam1 === playerInfo.playerId) ||
-      (playerInfo.team === 2 && state.faceOff.headPlayerTeam2 === playerInfo.playerId)
+      isSinglePlayer ||
+      !headId ||
+      headId === playerInfo.playerId
     );
+
+    if (myPodiumRoleBadge) {
+      myPodiumRoleBadge.style.display = isHead ? 'inline-block' : 'none';
+    }
 
     if (!isArmed && !hasWinner) {
       hasBuzzedThisTurn = false;
@@ -271,7 +286,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isHead) {
         setBuzzerState('ARMED', 'PRESS TO BUZZ! (AT PODIUM)');
       } else {
-        const headId = playerInfo.team === 1 ? state.faceOff.headPlayerTeam1 : state.faceOff.headPlayerTeam2;
         const headPlayer = state.connectedPlayers ? state.connectedPlayers.find(p => p.playerId === headId) : null;
         const repName = headPlayer ? headPlayer.playerName : 'Head Player';
         setBuzzerState('SPECTATING', `SPECTATING: ${repName} is buzzing for your team!`);
@@ -336,11 +350,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Strictly verify appointed head player for the round
-    const isHead = currentGameState && currentGameState.faceOff && (
-      (playerInfo.team === 1 && currentGameState.faceOff.headPlayerTeam1 === playerInfo.playerId) ||
-      (playerInfo.team === 2 && currentGameState.faceOff.headPlayerTeam2 === playerInfo.playerId)
-    );
+    // Strictly verify appointed head player for the round if multiple teammates present
+    const myTeamPlayers = (currentGameState && currentGameState.connectedPlayers && playerInfo) ? currentGameState.connectedPlayers.filter(p => p.team === playerInfo.team) : [];
+    const isSinglePlayer = myTeamPlayers.length <= 1;
+    const headId = playerInfo ? (playerInfo.team === 1 ? currentGameState?.faceOff?.headPlayerTeam1 : currentGameState?.faceOff?.headPlayerTeam2) : null;
+
+    const isHead = isSinglePlayer || !headId || headId === playerInfo.playerId;
 
     if (!isHead && currentGameState && currentGameState.faceOff && currentGameState.faceOff.buzzerArmed) {
       console.log('[Buzzer] Buzz rejected: Player is not appointed head player at the podium.');

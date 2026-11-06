@@ -164,16 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- WebRTC & Sync Setup ---
   function initRoom() {
-    let code = (state.roomCode || '').toUpperCase().trim();
-    // Auto-generate unique room code if still default 'FEUD' so users around the world never collide
-    if (!code || code === 'FEUD') {
-      const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      code = 'FF-';
-      for (let i = 0; i < 4; i++) {
-        code += letters.charAt(Math.floor(Math.random() * letters.length));
-      }
-      state.roomCode = code;
-    }
+    const code = (state.roomCode || 'FEUD').toUpperCase().trim();
+    state.roomCode = code;
     if (roomCodeInput) roomCodeInput.value = code;
 
     if (webrtcStatusEl) {
@@ -185,24 +177,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!webrtcStatusEl) return;
       if (evt.status === 'connected') {
         webrtcStatusEl.className = 'badge badge-green';
-        webrtcStatusEl.textContent = `🟢 Online: ${evt.roomCode || code} (${evt.connectedCount || 0} buzzers)`;
-        webrtcStatusEl.title = `Host active. Peer ID: feud-room-${evt.roomCode || code}. Devices connected: ${evt.connectedCount || 0}`;
-        if (roomCodeInput) roomCodeInput.value = evt.roomCode || code;
-        state.roomCode = evt.roomCode || code;
+        webrtcStatusEl.textContent = `🟢 Online: ${code} (${evt.connectedCount || 0} buzzers)`;
+        webrtcStatusEl.title = `Host active. Peer ID: feud-room-${code}. Devices connected: ${evt.connectedCount || 0}`;
+        if (roomCodeInput) roomCodeInput.value = code;
+        state.roomCode = code;
       } else if (evt.status === 'connecting') {
         webrtcStatusEl.className = 'badge badge-gold';
         webrtcStatusEl.textContent = `🟡 Connecting: ${code}...`;
-      } else if (evt.status === 'slow-connection') {
-        webrtcStatusEl.className = 'badge badge-gold';
-        webrtcStatusEl.textContent = `⚠️ Busy Server (Tap 🎲 New)`;
-        webrtcStatusEl.title = evt.message;
       } else if (evt.status === 'id-taken') {
         webrtcStatusEl.className = 'badge badge-gold';
-        webrtcStatusEl.textContent = `⚠️ Switching to ${evt.suggestedCode || code}...`;
-        if (evt.suggestedCode) {
-          state.roomCode = evt.suggestedCode;
-          if (roomCodeInput) roomCodeInput.value = evt.suggestedCode;
-        }
+        webrtcStatusEl.textContent = `⚠️ Room "${code}" Busy (Click "🎲 New")`;
+        webrtcStatusEl.title = 'Room code is occupied or clearing. Waiting 3s to reconnect, or click "🎲 New" for a fresh code.';
       } else if (evt.status === 'disconnected') {
         webrtcStatusEl.className = 'badge badge-gold';
         webrtcStatusEl.textContent = '🟡 Reconnecting...';
@@ -331,16 +316,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Face-Off Buzzer Logic ---
+  function ensureValidHeadPlayers() {
+    const t1 = state.connectedPlayers.filter(p => p.team === 1);
+    const t2 = state.connectedPlayers.filter(p => p.team === 2);
+    if (t1.length > 0 && (!state.faceOff.headPlayerTeam1 || !t1.some(p => p.playerId === state.faceOff.headPlayerTeam1))) {
+      state.faceOff.headPlayerTeam1 = t1[0].playerId;
+    }
+    if (t2.length > 0 && (!state.faceOff.headPlayerTeam2 || !t2.some(p => p.playerId === state.faceOff.headPlayerTeam2))) {
+      state.faceOff.headPlayerTeam2 = t2[0].playerId;
+    }
+  }
+
   function handlePlayerBuzz(player) {
     if (!state.faceOff.buzzerArmed) return;
 
-    // Enforce Head Player rule: only appointed representative from each team can buzz!
-    if (state.faceOff.headPlayerTeam1 && player.team === 1 && player.playerId !== state.faceOff.headPlayerTeam1) {
-      console.log(`[Admin] Buzz ignored: ${player.playerName} is not Team 1's appointed head player.`);
-      return;
-    }
-    if (state.faceOff.headPlayerTeam2 && player.team === 2 && player.playerId !== state.faceOff.headPlayerTeam2) {
-      console.log(`[Admin] Buzz ignored: ${player.playerName} is not Team 2's appointed head player.`);
+    // Enforce Head Player rule: only appointed representative from each team can buzz during face-off!
+    const tPlayers = state.connectedPlayers.filter(p => p.team === player.team);
+    const appointedHead = player.team === 1 ? state.faceOff.headPlayerTeam1 : state.faceOff.headPlayerTeam2;
+    if (appointedHead && tPlayers.length > 1 && player.playerId !== appointedHead) {
+      console.log(`[Admin] Buzz ignored: ${player.playerName} is not Team ${player.team}'s appointed head player.`);
       return;
     }
 
@@ -371,16 +365,8 @@ document.addEventListener('DOMContentLoaded', () => {
       state.connectedPlayers.push(player);
     }
 
-    // Auto-assign head player if not set yet for this team
-    if (player.team === 1 && !state.faceOff.headPlayerTeam1) {
-      state.faceOff.headPlayerTeam1 = player.playerId;
-    } else if (player.team === 2 && !state.faceOff.headPlayerTeam2) {
-      state.faceOff.headPlayerTeam2 = player.playerId;
-    }
+    ensureValidHeadPlayers();
 
-    broadcastState();
-    renderUI();
-  }
     broadcastState();
     renderUI();
   }
@@ -1068,6 +1054,10 @@ document.addEventListener('DOMContentLoaded', () => {
     clearRosterBtn.addEventListener('click', () => {
       if (confirm('Clear connected players roster? (Players can simply refresh or re-buzz to rejoin)')) {
         state.connectedPlayers = [];
+        if (state.faceOff) {
+          state.faceOff.headPlayerTeam1 = null;
+          state.faceOff.headPlayerTeam2 = null;
+        }
         broadcastState();
         renderUI();
       }

@@ -133,28 +133,16 @@ class SyncEngine {
     }
 
     try {
-      // 7-second watchdog alert if cloud handshake is delayed
-      this.connectWatchdog = setTimeout(() => {
-        if (!this.isOnline) {
-          console.warn('[Host] Cloud signaling taking longer than expected');
-          if (this.statusCallback) {
-            this.statusCallback({
-              status: 'slow-connection',
-              roomCode: this.roomCode,
-              message: 'Connecting is taking longer than usual. If busy, tap "🎲 New" for a fresh room code.'
-            });
-          }
-        }
-      }, 7000);
-
-      // Use default PeerJS cloud brokering without custom host override
       this.peer = new Peer(peerId, {
+        host: '0.peerjs.com',
+        port: 443,
+        path: '/',
+        secure: true,
         debug: 1,
         config: { iceServers: this.getIceServers() }
       });
 
       this.peer.on('open', (id) => {
-        if (this.connectWatchdog) clearTimeout(this.connectWatchdog);
         this.isOnline = true;
         this.retryAttempts = 0;
         console.log(`[Host] WebRTC Room online with ID: ${id}`);
@@ -173,25 +161,24 @@ class SyncEngine {
       });
 
       this.peer.on('error', (err) => {
-        if (this.connectWatchdog) clearTimeout(this.connectWatchdog);
         console.warn('[Host] PeerJS notice:', err);
         if (err.type === 'unavailable-id') {
-          // The ID is occupied on the shared cloud server: auto-recover with fresh unique code
+          // The ID is still occupied on the signaling server (e.g. recent refresh or duplicate tab)
           this.isOnline = false;
-          const nextRoomCode = this.roomCode + Math.floor(Math.random() * 90 + 10);
-          console.warn(`[Host] Room ID ${this.roomCode} occupied. Auto-switching to ${nextRoomCode}...`);
           if (this.statusCallback) {
             this.statusCallback({
               status: 'id-taken',
               roomCode: this.roomCode,
-              suggestedCode: nextRoomCode,
-              message: `Room "${this.roomCode}" is currently busy. Auto-switching to "${nextRoomCode}"...`
+              message: `Room "${this.roomCode}" is currently busy or releasing. Waiting to reconnect...`
             });
           }
-          this.roomCode = nextRoomCode;
-          this.reconnectTimer = setTimeout(() => {
-            this.initHostPeer(this.roomCode, this.statusCallback);
-          }, 1200);
+          if (this.retryAttempts < 5) {
+            this.retryAttempts++;
+            this.reconnectTimer = setTimeout(() => {
+              console.log(`[Host] Retrying host room registration (Attempt ${this.retryAttempts})...`);
+              this.initHostPeer(this.roomCode, this.statusCallback);
+            }, 3000);
+          }
         } else {
           if (this.statusCallback) {
             this.statusCallback({ status: 'error', errorType: err.type, message: err.message || err.type });
@@ -200,7 +187,6 @@ class SyncEngine {
       });
 
       this.peer.on('disconnected', () => {
-        if (this.connectWatchdog) clearTimeout(this.connectWatchdog);
         this.isOnline = false;
         console.warn('[Host] PeerJS disconnected from server, attempting reconnect...');
         if (this.statusCallback) this.statusCallback({ status: 'disconnected', message: 'Reconnecting to PeerJS cloud...' });
@@ -215,7 +201,7 @@ class SyncEngine {
   }
 
   setupHostConnection(conn) {
-    conn.on('open', () => {
+    const onOpen = () => {
       this.connections.set(conn.peer, conn);
       console.log(`[Host] Peer connection open: ${conn.peer} (Total: ${this.connections.size})`);
 
@@ -241,7 +227,13 @@ class SyncEngine {
           connectedCount: this.connections.size
         });
       }
-    });
+    };
+
+    if (conn.open) {
+      onOpen();
+    } else {
+      conn.on('open', onOpen);
+    }
 
     conn.on('data', (data) => {
       if (!data || !data.type) return;
@@ -332,6 +324,10 @@ class SyncEngine {
 
     try {
       this.peer = new Peer({
+        host: '0.peerjs.com',
+        port: 443,
+        path: '/',
+        secure: true,
         debug: 1,
         config: { iceServers: this.getIceServers() }
       });
@@ -358,15 +354,26 @@ class SyncEngine {
     if (!this.peer || this.peer.destroyed) return;
     if (this.statusCallback) this.statusCallback({ status: 'connecting', message: 'Connecting to Host room...' });
 
+    if (this.hostConn) {
+      try { this.hostConn.close(); } catch(e){}
+      this.hostConn = null;
+    }
+
     this.hostConn = this.peer.connect(targetHostId, { reliable: true });
 
-    this.hostConn.on('open', () => {
+    const onOpen = () => {
       this.isOnline = true;
       if (this.statusCallback) this.statusCallback({ status: 'connected', message: 'Connected to Host!' });
       try {
         this.hostConn.send({ type: 'VIEWER_JOIN', payload: { role: 'board' } });
       } catch (e) {}
-    });
+    };
+
+    if (this.hostConn.open) {
+      onOpen();
+    } else {
+      this.hostConn.on('open', onOpen);
+    }
 
     this.hostConn.on('data', (data) => {
       if (data && data.type) {
@@ -414,6 +421,10 @@ class SyncEngine {
 
     try {
       this.peer = new Peer({
+        host: '0.peerjs.com',
+        port: 443,
+        path: '/',
+        secure: true,
         debug: 1,
         config: { iceServers: this.getIceServers() }
       });
@@ -449,24 +460,14 @@ class SyncEngine {
       this.statusCallback({ status: 'connecting', message: `Connecting to room ${this.roomCode}...`, roomCode: this.roomCode });
     }
 
-    const handshakeWatchdog = setTimeout(() => {
-      if (!this.isOnline) {
-        console.warn('[Client] Handshake timeout with host');
-        if (this.statusCallback) {
-          this.statusCallback({
-            status: 'reconnecting',
-            message: 'Connecting is taking longer than expected. Retrying...',
-            roomCode: this.roomCode
-          });
-        }
-        this.scheduleClientReconnect(targetHostId);
-      }
-    }, 7000);
+    if (this.hostConn) {
+      try { this.hostConn.close(); } catch(e){}
+      this.hostConn = null;
+    }
 
     this.hostConn = this.peer.connect(targetHostId, { reliable: true });
 
-    this.hostConn.on('open', () => {
-      clearTimeout(handshakeWatchdog);
+    const onOpen = () => {
       this.isOnline = true;
       this.retryAttempts = 0;
       console.log(`[Client] Connected to host ${targetHostId}!`);
@@ -476,7 +477,13 @@ class SyncEngine {
 
       // Send join announcement
       this.sendToHost('PLAYER_JOIN', this.playerData);
-    });
+    };
+
+    if (this.hostConn.open) {
+      onOpen();
+    } else {
+      this.hostConn.on('open', onOpen);
+    }
 
     this.hostConn.on('data', (data) => {
       if (!data || !data.type) return;
@@ -504,7 +511,6 @@ class SyncEngine {
     });
 
     this.hostConn.on('close', () => {
-      clearTimeout(handshakeWatchdog);
       this.isOnline = false;
       console.warn('[Client] Disconnected from host');
       if (this.statusCallback) {
@@ -518,7 +524,6 @@ class SyncEngine {
     });
 
     this.hostConn.on('error', (err) => {
-      clearTimeout(handshakeWatchdog);
       console.warn('[Client] Host connection error:', err);
     });
   }
