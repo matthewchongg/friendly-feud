@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Family Feud Game State Management
  */
 
@@ -33,6 +33,8 @@ class GameState {
         buzzerArmed: false,
         buzzWinner: null, // { playerId, playerName, team, timestamp }
         secondBuzz: null, // { playerId, playerName, team, timestamp }
+        headPlayerTeam1: null, // Appointed Podium Player ID for Team 1
+        headPlayerTeam2: null, // Appointed Podium Player ID for Team 2
         statusText: 'Podiums Ready. Arm buzzers to start face-off.'
       },
       timer: {
@@ -98,10 +100,14 @@ class GameState {
     this.state.strikes = 0;
     this.state.controllingTeam = null;
     this.state.phase = 'FACE_OFF';
+    const curHead1 = this.state.faceOff ? this.state.faceOff.headPlayerTeam1 : null;
+    const curHead2 = this.state.faceOff ? this.state.faceOff.headPlayerTeam2 : null;
     this.state.faceOff = {
       buzzerArmed: false,
       buzzWinner: null,
       secondBuzz: null,
+      headPlayerTeam1: curHead1,
+      headPlayerTeam2: curHead2,
       statusText: 'Podiums Ready. Arm buzzers to start face-off.'
     };
     this.state.steal = {

@@ -60,24 +60,32 @@
           <span class="player-identity-team" id="playerDisplayTeam">Team 1</span>
         </div>
 
-        <div class="scores-quick-bar" style="display:flex;align-items:center;gap:6px;">
-          <span id="buzzerRoomCodeTag" class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-light);font-size:0.75rem;">FEUD</span>
-          <span id="currentRoundTag" class="badge badge-gold">Round 1</span>
-          <button type="button" id="clientStatusBadge" class="badge badge-green" style="cursor:pointer;border:none;" title="Click to reconnect">Connected</button>
+        <div class="scores-quick-bar">
+          <span id="buzzerRoomCodeTag" class="badge hud-code-badge">FEUD</span>
+          <span id="currentRoundTag" class="badge badge-gold hud-round-badge">#1</span>
+          <button type="button" id="clientStatusBadge" class="status-indicator-btn status-connected" title="Tap to Reconnect">
+            <span class="status-dot-circle" id="clientStatusDot"></span>
+            <span class="status-label-text" id="clientStatusText">Online</span>
+          </button>
         </div>
       </div>
 
       <!-- Disconnect Alert Banner -->
       <div id="buzzerDisconnectAlert" style="display:none;background:rgba(231,76,60,0.25);border:1px solid #e74c3c;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:0.85rem;color:#ff7675;align-items:center;justify-content:space-between;">
-        <span id="buzzerDisconnectText">Disconnected from game</span>
+        <span id="buzzerDisconnectText">Disconnected From Game</span>
         <button type="button" id="buzzerReconnectBtn" class="icon-btn" style="padding:4px 10px;font-size:0.78rem;background:rgba(255,255,255,0.15);">🔄 Reconnect</button>
       </div>
 
-      <!-- Live Scores Header -->
-      <div style="display:flex;justify-content:space-around;background:rgba(0,0,0,0.35);padding:10px;border-radius:var(--radius-sm);margin-bottom:12px;font-size:0.95rem;font-weight:800;font-family:var(--font-display);">
-        <span id="team1HudScore" style="color:#2ecc71;">Team 1: 0</span>
-        <span style="color:var(--text-muted);">|</span>
-        <span id="team2HudScore" style="color:#ff7675;">Team 2: 0</span>
+      <!-- Player's Own Team Live Score Card (Enemy score hidden) -->
+      <div class="my-team-score-card" id="myTeamScoreCard">
+        <div class="my-team-label-row">
+          <span class="my-team-tag">YOUR TEAM</span>
+          <span id="myPodiumRoleBadge" class="podium-role-badge" style="display:none;">⭐ At The Podium</span>
+        </div>
+        <div class="my-team-name-row">
+          <span id="myTeamNameDisplay" class="my-team-name">Team 1</span>
+          <span id="myTeamScoreDisplay" class="my-team-points">0 PTS</span>
+        </div>
       </div>
 
       <!-- Giant Interactive Buzzer Button -->
@@ -90,7 +98,7 @@
         </div>
 
         <div class="buzzer-status-text" id="buzzerStatusText">
-          Waiting for host to arm buzzers...
+          Waiting For Host To Arm Buzzers...
         </div>
       </div>
 

@@ -224,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   [team1NameInput, team2NameInput].forEach(inp => {
     if (inp) {
+      inp.addEventListener('input', updateTeamNames);
       inp.addEventListener('change', updateTeamNames);
       inp.addEventListener('blur', updateTeamNames);
     }
@@ -307,6 +308,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function handlePlayerBuzz(player) {
     if (!state.faceOff.buzzerArmed) return;
 
+    // Enforce Head Player rule: only appointed representative from each team can buzz!
+    if (state.faceOff.headPlayerTeam1 && player.team === 1 && player.playerId !== state.faceOff.headPlayerTeam1) {
+      console.log(`[Admin] Buzz ignored: ${player.playerName} is not Team 1's appointed head player.`);
+      return;
+    }
+    if (state.faceOff.headPlayerTeam2 && player.team === 2 && player.playerId !== state.faceOff.headPlayerTeam2) {
+      console.log(`[Admin] Buzz ignored: ${player.playerName} is not Team 2's appointed head player.`);
+      return;
+    }
+
     sound.playBuzzerHit();
 
     if (!state.faceOff.buzzWinner) {
@@ -333,6 +344,17 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       state.connectedPlayers.push(player);
     }
+
+    // Auto-assign head player if not set yet for this team
+    if (player.team === 1 && !state.faceOff.headPlayerTeam1) {
+      state.faceOff.headPlayerTeam1 = player.playerId;
+    } else if (player.team === 2 && !state.faceOff.headPlayerTeam2) {
+      state.faceOff.headPlayerTeam2 = player.playerId;
+    }
+
+    broadcastState();
+    renderUI();
+  }
     broadcastState();
     renderUI();
   }
@@ -559,42 +581,130 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderRoster() {
     if (connectedCountEl) connectedCountEl.textContent = state.connectedPlayers.length;
-    if (!playersRosterList) return;
-    playersRosterList.innerHTML = '';
+    
+    const team1ListEl = document.getElementById('team1PlayersList');
+    const team2ListEl = document.getElementById('team2PlayersList');
+    const team1CountBadge = document.getElementById('team1CountBadge');
+    const team2CountBadge = document.getElementById('team2CountBadge');
+    const team1HeadNameDisplay = document.getElementById('team1HeadNameDisplay');
+    const team2HeadNameDisplay = document.getElementById('team2HeadNameDisplay');
 
-    if (state.connectedPlayers.length === 0) {
-      playersRosterList.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:6px;">No players connected yet. Scan QR code to join!</div>';
-      return;
+    if (!team1ListEl || !team2ListEl) return;
+    team1ListEl.innerHTML = '';
+    team2ListEl.innerHTML = '';
+
+    const t1Players = state.connectedPlayers.filter(p => p.team === 1);
+    const t2Players = state.connectedPlayers.filter(p => p.team === 2);
+
+    if (team1CountBadge) team1CountBadge.textContent = `${t1Players.length} Players`;
+    if (team2CountBadge) team2CountBadge.textContent = `${t2Players.length} Players`;
+
+    // Ensure valid head players
+    if (t1Players.length > 0 && (!state.faceOff.headPlayerTeam1 || !t1Players.some(p => p.playerId === state.faceOff.headPlayerTeam1))) {
+      state.faceOff.headPlayerTeam1 = t1Players[0].playerId;
+    }
+    if (t2Players.length > 0 && (!state.faceOff.headPlayerTeam2 || !t2Players.some(p => p.playerId === state.faceOff.headPlayerTeam2))) {
+      state.faceOff.headPlayerTeam2 = t2Players[0].playerId;
     }
 
-    state.connectedPlayers.forEach((p) => {
-      const item = document.createElement('div');
-      item.className = 'player-roster-item';
-      item.innerHTML = `
-        <div>
-          <strong>${p.playerName}</strong>
-          ${p.isCaptain ? '<span style="color:var(--gold-primary);font-size:0.75rem;"> [Captain]</span>' : ''}
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <span class="player-team-tag tag-team-${p.team}">${p.team === 1 ? state.team1.name : state.team2.name}</span>
-          <button class="icon-btn switch-team-btn" style="padding:2px 6px;font-size:0.7rem;" title="Switch Team">⇄</button>
-          <button class="icon-btn captain-btn" style="padding:2px 6px;font-size:0.7rem;" title="Toggle Captain">👑</button>
-        </div>
-      `;
+    const t1Head = t1Players.find(p => p.playerId === state.faceOff.headPlayerTeam1);
+    const t2Head = t2Players.find(p => p.playerId === state.faceOff.headPlayerTeam2);
 
-      item.querySelector('.switch-team-btn').addEventListener('click', () => {
-        p.team = p.team === 1 ? 2 : 1;
-        broadcastState();
-        renderUI();
+    if (team1HeadNameDisplay) team1HeadNameDisplay.textContent = t1Head ? t1Head.playerName : 'None appointed';
+    if (team2HeadNameDisplay) team2HeadNameDisplay.textContent = t2Head ? t2Head.playerName : 'None appointed';
+
+    // Render Team 1 Players
+    if (t1Players.length === 0) {
+      team1ListEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.8rem;padding:6px;">No players on Team 1 yet.</div>';
+    } else {
+      t1Players.forEach((p) => {
+        team1ListEl.appendChild(createPlayerRosterItem(p, 1));
       });
+    }
 
-      item.querySelector('.captain-btn').addEventListener('click', () => {
-        p.isCaptain = !p.isCaptain;
-        broadcastState();
-        renderUI();
+    // Render Team 2 Players
+    if (t2Players.length === 0) {
+      team2ListEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.8rem;padding:6px;">No players on Team 2 yet.</div>';
+    } else {
+      t2Players.forEach((p) => {
+        team2ListEl.appendChild(createPlayerRosterItem(p, 2));
       });
+    }
+  }
 
-      playersRosterList.appendChild(item);
+  function createPlayerRosterItem(p, teamNum) {
+    const isHead = (teamNum === 1 && state.faceOff.headPlayerTeam1 === p.playerId) ||
+                   (teamNum === 2 && state.faceOff.headPlayerTeam2 === p.playerId);
+
+    const item = document.createElement('div');
+    item.className = `player-roster-item ${isHead ? 'is-podium-rep' : ''}`;
+    item.style.display = 'flex';
+    item.style.justifyContent = 'space-between';
+    item.style.alignItems = 'center';
+    item.style.padding = '6px 8px';
+    item.style.background = isHead ? 'rgba(246,185,59,0.18)' : 'rgba(0,0,0,0.3)';
+    item.style.border = `1px solid ${isHead ? 'var(--gold-primary)' : 'rgba(255,255,255,0.1)'}`;
+    item.style.borderRadius = '6px';
+    item.style.marginBottom = '6px';
+
+    item.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;overflow:hidden;">
+        <strong style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;">${p.playerName}</strong>
+        ${isHead ? '<span class="head-rep-tag" title="Face-Off Podium Representative for this round">⭐ Rep</span>' : ''}
+        ${p.isCaptain ? '<span style="color:var(--gold-primary);font-size:0.75rem;" title="Team Captain">👑</span>' : ''}
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <button class="icon-btn rep-btn" style="padding:2px 6px;font-size:0.7rem;${isHead ? 'background:var(--gold-primary);color:#071330;' : ''}" title="Appoint as Face-Off representative for this round">⭐ Rep</button>
+        <button class="icon-btn captain-btn" style="padding:2px 6px;font-size:0.7rem;" title="Toggle Team Captain">👑</button>
+        <button class="icon-btn switch-team-btn" style="padding:2px 6px;font-size:0.7rem;" title="Switch to other team">⇄</button>
+      </div>
+    `;
+
+    item.querySelector('.rep-btn').addEventListener('click', () => {
+      if (teamNum === 1) state.faceOff.headPlayerTeam1 = p.playerId;
+      else state.faceOff.headPlayerTeam2 = p.playerId;
+      broadcastState();
+      renderUI();
+    });
+
+    item.querySelector('.captain-btn').addEventListener('click', () => {
+      p.isCaptain = !p.isCaptain;
+      broadcastState();
+      renderUI();
+    });
+
+    item.querySelector('.switch-team-btn').addEventListener('click', () => {
+      p.team = p.team === 1 ? 2 : 1;
+      if (state.faceOff.headPlayerTeam1 === p.playerId) state.faceOff.headPlayerTeam1 = null;
+      if (state.faceOff.headPlayerTeam2 === p.playerId) state.faceOff.headPlayerTeam2 = null;
+      broadcastState();
+      renderUI();
+    });
+
+    return item;
+  }
+
+  // Auto-Pick Next Pair for Face-Off
+  const autoPickNextPairBtn = document.getElementById('autoPickNextPairBtn');
+  if (autoPickNextPairBtn) {
+    autoPickNextPairBtn.addEventListener('click', () => {
+      const t1 = state.connectedPlayers.filter(p => p.team === 1);
+      const t2 = state.connectedPlayers.filter(p => p.team === 2);
+
+      if (t1.length > 0) {
+        const curIdx1 = t1.findIndex(p => p.playerId === state.faceOff.headPlayerTeam1);
+        const nextIdx1 = (curIdx1 + 1) % t1.length;
+        state.faceOff.headPlayerTeam1 = t1[nextIdx1].playerId;
+      }
+
+      if (t2.length > 0) {
+        const curIdx2 = t2.findIndex(p => p.playerId === state.faceOff.headPlayerTeam2);
+        const nextIdx2 = (curIdx2 + 1) % t2.length;
+        state.faceOff.headPlayerTeam2 = t2[nextIdx2].playerId;
+      }
+
+      broadcastState();
+      renderUI();
     });
   }
 
@@ -605,7 +715,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (state.faceOff.buzzerArmed) {
         state.faceOff.buzzWinner = null;
         state.faceOff.secondBuzz = null;
-        state.faceOff.statusText = 'BUZZERS ARMED! First to buzz answers.';
+
+        const t1 = state.connectedPlayers.filter(p => p.team === 1);
+        const t2 = state.connectedPlayers.filter(p => p.team === 2);
+        const rep1 = t1.find(p => p.playerId === state.faceOff.headPlayerTeam1);
+        const rep2 = t2.find(p => p.playerId === state.faceOff.headPlayerTeam2);
+        const names = rep1 && rep2 ? ` (${rep1.playerName} vs ${rep2.playerName})` : '';
+
+        state.faceOff.statusText = `BUZZERS ARMED${names}! First to buzz answers.`;
       } else {
         state.faceOff.statusText = 'Buzzers Locked.';
       }
@@ -1388,6 +1505,217 @@ document.addEventListener('DOMContentLoaded', () => {
         populateQuestionDropdown();
         loadQuestion(qManager.getAll()[0]);
       }
+    });
+  }
+
+  // ==========================================
+  // ADMIN PASSWORD SECURITY & SETTINGS (GETTER & SETTER)
+  // ==========================================
+  const adminAuthOverlay = document.getElementById('adminAuthOverlay');
+  const adminPasswordAuthInput = document.getElementById('adminPasswordAuthInput');
+  const authErrorMsg = document.getElementById('authErrorMsg');
+  const adminUnlockBtn = document.getElementById('adminUnlockBtn');
+
+  const passwordSettingsBtn = document.getElementById('passwordSettingsBtn');
+  const passwordModal = document.getElementById('passwordModal');
+  const adminCurrentPasswordDisplay = document.getElementById('adminCurrentPasswordDisplay');
+  const copyAdminPasswordBtn = document.getElementById('copyAdminPasswordBtn');
+  const adminNewPasswordInput = document.getElementById('adminNewPasswordInput');
+  const saveAdminPasswordBtn = document.getElementById('saveAdminPasswordBtn');
+  const lockScreenNowBtn = document.getElementById('lockScreenNowBtn');
+
+  function getAdminPassword() {
+    return localStorage.getItem('feud_admin_password') || 'feudadmin';
+  }
+
+  function checkAdminAuth() {
+    const isAuthed = sessionStorage.getItem('feud_admin_auth') === 'true';
+    if (!isAuthed) {
+      if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
+      if (adminPasswordAuthInput) {
+        setTimeout(() => adminPasswordAuthInput.focus(), 150);
+      }
+    } else {
+      if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
+    }
+  }
+
+  if (adminUnlockBtn && adminPasswordAuthInput) {
+    const attemptUnlock = () => {
+      const inputPass = adminPasswordAuthInput.value.trim();
+      if (inputPass === getAdminPassword()) {
+        sessionStorage.setItem('feud_admin_auth', 'true');
+        if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
+        if (authErrorMsg) authErrorMsg.style.display = 'none';
+        adminPasswordAuthInput.value = '';
+      } else {
+        if (authErrorMsg) authErrorMsg.style.display = 'block';
+        adminPasswordAuthInput.focus();
+        adminPasswordAuthInput.select();
+      }
+    };
+
+    adminUnlockBtn.addEventListener('click', attemptUnlock);
+    adminPasswordAuthInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') attemptUnlock();
+    });
+  }
+
+  // Password Settings Modal (Getter & Setter)
+  if (passwordSettingsBtn) {
+    passwordSettingsBtn.addEventListener('click', () => {
+      if (adminCurrentPasswordDisplay) {
+        adminCurrentPasswordDisplay.value = getAdminPassword();
+      }
+      if (passwordModal) passwordModal.classList.add('active');
+    });
+  }
+
+  if (copyAdminPasswordBtn) {
+    copyAdminPasswordBtn.addEventListener('click', () => {
+      const pass = getAdminPassword();
+      navigator.clipboard.writeText(pass).then(() => {
+        copyAdminPasswordBtn.textContent = 'Copied!';
+        setTimeout(() => copyAdminPasswordBtn.textContent = 'Copy', 1500);
+      });
+    });
+  }
+
+  if (saveAdminPasswordBtn) {
+    saveAdminPasswordBtn.addEventListener('click', () => {
+      const newPass = adminNewPasswordInput ? adminNewPasswordInput.value.trim() : '';
+      if (!newPass || newPass.length < 4) {
+        alert('Please enter a password of at least 4 characters.');
+        return;
+      }
+      localStorage.setItem('feud_admin_password', newPass);
+      if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = newPass;
+      if (adminNewPasswordInput) adminNewPasswordInput.value = '';
+      alert('Admin password updated successfully!');
+    });
+  }
+
+  if (lockScreenNowBtn) {
+    lockScreenNowBtn.addEventListener('click', () => {
+      sessionStorage.removeItem('feud_admin_auth');
+      if (passwordModal) passwordModal.classList.remove('active');
+      checkAdminAuth();
+    });
+  }
+
+  // Run initial password authentication check
+  checkAdminAuth();
+
+  // ==========================================
+  // AI QUESTION GENERATOR (PG GUARDRAILS)
+  // ==========================================
+  const aiTopicInput = document.getElementById('aiTopicInput');
+  const aiGenerateBtn = document.getElementById('aiGenerateBtn');
+  const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+  const saveGeminiKeyBtn = document.getElementById('saveGeminiKeyBtn');
+  const aiStatusArea = document.getElementById('aiStatusArea');
+  const aiResultCard = document.getElementById('aiResultCard');
+  const aiSourceBadge = document.getElementById('aiSourceBadge');
+  const aiPointsTotalBadge = document.getElementById('aiPointsTotalBadge');
+  const aiGeneratedQuestionText = document.getElementById('aiGeneratedQuestionText');
+  const aiGeneratedAnswersList = document.getElementById('aiGeneratedAnswersList');
+  const aiRegenerateBtn = document.getElementById('aiRegenerateBtn');
+  const aiAddToBankBtn = document.getElementById('aiAddToBankBtn');
+  const aiPlayNowBtn = document.getElementById('aiPlayNowBtn');
+
+  // Load saved Gemini API key if present
+  const savedGeminiKey = localStorage.getItem('feud_gemini_api_key') || '';
+  if (geminiApiKeyInput) geminiApiKeyInput.value = savedGeminiKey;
+
+  if (saveGeminiKeyBtn) {
+    saveGeminiKeyBtn.addEventListener('click', () => {
+      const key = geminiApiKeyInput ? geminiApiKeyInput.value.trim() : '';
+      localStorage.setItem('feud_gemini_api_key', key);
+      saveGeminiKeyBtn.textContent = 'Saved!';
+      setTimeout(() => saveGeminiKeyBtn.textContent = 'Save Key', 1500);
+    });
+  }
+
+  let latestAiQuestion = null;
+
+  async function handleAiGenerate() {
+    const prompt = (aiTopicInput ? aiTopicInput.value : '').trim();
+    if (!prompt) {
+      alert('Please enter a topic prompt (e.g. "Beach vacation packing", "Excuses for being late").');
+      if (aiTopicInput) aiTopicInput.focus();
+      return;
+    }
+
+    if (aiStatusArea) {
+      aiStatusArea.style.display = 'block';
+      aiStatusArea.textContent = '✨ Thinking up wholesome, PG survey answers...';
+    }
+    if (aiResultCard) aiResultCard.style.display = 'none';
+
+    try {
+      const key = geminiApiKeyInput ? geminiApiKeyInput.value.trim() : (localStorage.getItem('feud_gemini_api_key') || '');
+      const res = await qManager.generateQuestionWithAI(prompt, key);
+
+      latestAiQuestion = res.question;
+
+      if (aiStatusArea) aiStatusArea.style.display = 'none';
+      if (aiResultCard) aiResultCard.style.display = 'block';
+
+      if (aiSourceBadge) aiSourceBadge.textContent = res.source;
+      const totalPts = res.question.answers.reduce((sum, a) => sum + (a.points || 0), 0);
+      if (aiPointsTotalBadge) aiPointsTotalBadge.textContent = `Total: ${totalPts} Pts`;
+
+      if (aiGeneratedQuestionText) aiGeneratedQuestionText.textContent = res.question.question;
+      if (aiGeneratedAnswersList) {
+        aiGeneratedAnswersList.innerHTML = '';
+        res.question.answers.forEach((ans, idx) => {
+          const item = document.createElement('div');
+          item.className = 'answer-card-preview';
+          item.style.display = 'flex';
+          item.style.justifyContent = 'space-between';
+          item.style.background = 'rgba(255,255,255,0.06)';
+          item.style.padding = '8px 12px';
+          item.style.borderRadius = '6px';
+          item.style.marginBottom = '6px';
+          item.innerHTML = `<span><strong>${idx + 1}.</strong> ${ans.text}</span> <span style="color:var(--gold-primary);font-weight:800;">${ans.points} pts</span>`;
+          aiGeneratedAnswersList.appendChild(item);
+        });
+      }
+    } catch (err) {
+      if (aiStatusArea) {
+        aiStatusArea.style.display = 'block';
+        aiStatusArea.innerHTML = `<span style="color:#ff7675;">${err.message}</span>`;
+      }
+    }
+  }
+
+  if (aiGenerateBtn) aiGenerateBtn.addEventListener('click', handleAiGenerate);
+  if (aiRegenerateBtn) aiRegenerateBtn.addEventListener('click', handleAiGenerate);
+  if (aiTopicInput) {
+    aiTopicInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleAiGenerate();
+    });
+  }
+
+  if (aiAddToBankBtn) {
+    aiAddToBankBtn.addEventListener('click', () => {
+      if (!latestAiQuestion) return;
+      qManager.add(latestAiQuestion);
+      populateQuestionDropdown();
+      renderQuestionsManagerList();
+      aiAddToBankBtn.textContent = '✅ Added to Bank!';
+      setTimeout(() => aiAddToBankBtn.textContent = '📋 Add to Bank', 1500);
+    });
+  }
+
+  if (aiPlayNowBtn) {
+    aiPlayNowBtn.addEventListener('click', () => {
+      if (!latestAiQuestion) return;
+      qManager.add(latestAiQuestion);
+      populateQuestionDropdown();
+      renderQuestionsManagerList();
+      loadQuestion(latestAiQuestion);
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     });
   }
 });

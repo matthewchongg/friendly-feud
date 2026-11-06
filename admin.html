@@ -29,39 +29,18 @@
         <button id="reconnectWebRtcBtn" class="icon-btn" style="padding:6px 10px;" title="Reconnect WebRTC Signaling">🔄 Reconnect</button>
       </div>
 
-      <button id="showQrBtn" class="icon-btn">📱 Buzzer QR Code</button>
+      <button id="showQrBtn" class="icon-btn">📱 Buzzer QR</button>
       <button id="openBuzzerBtn" class="icon-btn">📱 Open Buzzer</button>
       <button id="openBoardBtn" class="icon-btn" style="border-color:var(--gold-border);color:var(--gold-primary);">📺 Open Board</button>
+      <a href="rules.html" target="_blank" class="icon-btn" style="text-decoration:none;">📖 Rules</a>
+      <button id="passwordSettingsBtn" class="icon-btn" title="Admin Password Settings">🔑 Password</button>
     </div>
   </header>
 
   <main class="admin-main">
     <!-- Main Left Column -->
     <div class="admin-left-col">
-      <!-- 1: Custom Teams Setup Bar -->
-      <section class="control-card" style="margin-bottom:16px;padding:16px 20px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:0.88rem;font-weight:800;color:#2ecc71;font-family:var(--font-display);">TEAM 1:</span>
-              <input type="text" id="team1NameInput" class="form-input" style="width:170px;padding:6px 12px;font-size:0.92rem;font-weight:700;color:#2ecc71;" value="Team 1">
-            </div>
-
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:0.88rem;font-weight:800;color:#ff5252;font-family:var(--font-display);">TEAM 2:</span>
-              <input type="text" id="team2NameInput" class="form-input" style="width:170px;padding:6px 12px;font-size:0.92rem;font-weight:700;color:#ff7675;" value="Team 2">
-            </div>
-
-            <button id="updateTeamsBtn" class="btn-primary" style="padding:7px 16px;font-size:0.88rem;">Save Names</button>
-          </div>
-
-          <div style="font-size:0.82rem;color:var(--text-muted);">
-            Names sync live to Board & mobile buzzers!
-          </div>
-        </div>
-      </section>
-
-      <!-- 2: Custom Amounts of Rounds Manager Bar -->
+      <!-- 1: Custom Amounts of Rounds Manager Bar -->
       <section class="round-manager-bar">
         <div class="round-selector-group">
           <span style="font-size:0.9rem;font-weight:800;color:var(--gold-primary);text-transform:uppercase;font-family:var(--font-display);">Rounds:</span>
@@ -331,20 +310,51 @@
         </div>
       </section>
 
-      <!-- Connected Players & Roster (Unlimited Players) -->
+      <!-- Connected Players & Teams Roster (Unlimited Players) -->
       <section class="control-card">
         <div class="card-title">
-          <span>👥 Players Roster</span>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span class="badge badge-gold" id="connectedCount">0</span>
-            <button id="clearRosterBtn" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;" title="Clear connected players list">Clear Roster</button>
+          <span>👥 Teams & Rosters</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button id="autoPickNextPairBtn" class="icon-btn" style="padding:4px 8px;font-size:0.75rem;border-color:var(--gold-border);color:var(--gold-primary);" title="Auto-advance podium representative for each team">🎲 Auto-Pick Pair</button>
+            <button id="clearRosterBtn" class="icon-btn" style="padding:4px 8px;font-size:0.75rem;" title="Clear connected players list">Clear</button>
           </div>
         </div>
-        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px;">
-          Unlimited players can connect live. Designate captains or switch teams anytime:
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">
+          Only 1 player per team is appointed to buzz during Face-Off. Appoint below or Auto-Pick:
         </div>
-        <div class="players-roster-list" id="playersRosterList">
-          <!-- Populated dynamically -->
+
+        <!-- Team 1 Roster Block -->
+        <div class="team-roster-box team-1-box" style="margin-bottom:14px;background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.3);border-radius:var(--radius-sm);padding:10px 12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+            <div style="display:flex;align-items:center;gap:6px;flex:1;">
+              <span style="font-size:0.82rem;font-weight:900;color:#2ecc71;font-family:var(--font-display);">TEAM 1:</span>
+              <input type="text" id="team1NameInput" class="form-input team-name-input" value="Team 1" style="flex:1;padding:4px 8px;font-size:0.88rem;font-weight:700;color:#2ecc71;">
+            </div>
+            <span class="badge" id="team1CountBadge" style="background:rgba(46,204,113,0.25);color:#2ecc71;">0</span>
+          </div>
+          <div style="font-size:0.78rem;color:var(--gold-glow);margin-bottom:6px;font-weight:700;">
+            ⭐ Podium Rep: <span id="team1HeadNameDisplay" style="color:#fff;">None appointed</span>
+          </div>
+          <div class="players-roster-list" id="team1PlayersList">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Team 2 Roster Block -->
+        <div class="team-roster-box team-2-box" style="background:rgba(255,82,82,0.08);border:1px solid rgba(255,82,82,0.3);border-radius:var(--radius-sm);padding:10px 12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+            <div style="display:flex;align-items:center;gap:6px;flex:1;">
+              <span style="font-size:0.82rem;font-weight:900;color:#ff7675;font-family:var(--font-display);">TEAM 2:</span>
+              <input type="text" id="team2NameInput" class="form-input team-name-input" value="Team 2" style="flex:1;padding:4px 8px;font-size:0.88rem;font-weight:700;color:#ff7675;">
+            </div>
+            <span class="badge" id="team2CountBadge" style="background:rgba(255,82,82,0.25);color:#ff7675;">0</span>
+          </div>
+          <div style="font-size:0.78rem;color:var(--gold-glow);margin-bottom:6px;font-weight:700;">
+            ⭐ Podium Rep: <span id="team2HeadNameDisplay" style="color:#fff;">None appointed</span>
+          </div>
+          <div class="players-roster-list" id="team2PlayersList">
+            <!-- Populated dynamically -->
+          </div>
         </div>
       </section>
 
@@ -400,6 +410,7 @@
         <button type="button" class="modal-tab-btn active" id="tabBankBtn" data-tab="tabBank">📋 Question Bank (<span id="tabBankCount">10</span>)</button>
         <button type="button" class="modal-tab-btn" id="tabSpreadsheetBtn" data-tab="tabSpreadsheet">📊 Upload Spreadsheet (Excel/CSV)</button>
         <button type="button" class="modal-tab-btn" id="tabBuilderBtn" data-tab="tabBuilder">➕ Add New Question</button>
+        <button type="button" class="modal-tab-btn" id="tabAiBtn" data-tab="tabAi">✨ AI Question Generator</button>
       </div>
 
       <!-- TAB 1: QUESTION BANK LIST -->
@@ -510,8 +521,125 @@
         </div>
       </div>
 
+      <!-- TAB 4: AI QUESTION GENERATOR -->
+      <div class="tab-content-panel" id="tabAi">
+        <div style="background:rgba(246,185,59,0.08);border:1px solid var(--gold-border);border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:1.6rem;">🛡️</span>
+              <div>
+                <strong style="color:var(--gold-primary);font-size:0.95rem;">Family Game Show PG Guardrails Active</strong>
+                <div style="font-size:0.8rem;color:var(--text-muted);">Questions and ranked survey answers are strictly wholesome, clean, and family-friendly.</div>
+              </div>
+            </div>
+            <span class="badge badge-green">PG Certified</span>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Enter Topic or Theme Prompt:</label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <input type="text" id="aiTopicInput" class="form-input" placeholder="e.g. Beach vacation packing, Excuses for arriving late, Things found in an attic..." style="flex:1;min-width:240px;">
+            <button type="button" id="aiGenerateBtn" class="btn-primary" style="padding:10px 22px;white-space:nowrap;">✨ Generate Survey Question</button>
+          </div>
+        </div>
+
+        <!-- Optional Gemini API Key configuration -->
+        <div style="background:rgba(0,0,0,0.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:18px;">
+          <details>
+            <summary style="cursor:pointer;font-size:0.82rem;font-weight:700;color:var(--text-muted);">
+              ⚙️ AI Provider Settings (Optional Gemini API Key)
+            </summary>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:0.8rem;color:var(--text-muted);">
+                By default, our built-in Smart PG Generator works instantly without an API key. To connect live Google Gemini AI, paste your free Gemini API key below:
+              </div>
+              <div style="display:flex;gap:8px;">
+                <input type="password" id="geminiApiKeyInput" class="form-input" placeholder="AIzaSy... (Paste Gemini API key)" style="flex:1;font-size:0.85rem;">
+                <button type="button" id="saveGeminiKeyBtn" class="icon-btn" style="padding:6px 12px;font-size:0.82rem;">Save Key</button>
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">
+                Key is stored safely in your browser's localStorage only. Get a free key at <a href="https://aistudio.google.com/" target="_blank" style="color:var(--gold-primary);">Google AI Studio</a>.
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- AI Output & Live Preview Area -->
+        <div id="aiStatusArea" style="display:none;padding:12px;text-align:center;font-weight:700;color:var(--gold-glow);margin-bottom:14px;"></div>
+
+        <div id="aiResultCard" style="display:none;background:#0d1836;border:1px solid rgba(246,185,59,0.4);border-radius:var(--radius-md);padding:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <span class="badge badge-gold" id="aiSourceBadge">Smart AI</span>
+            <span class="badge badge-green" id="aiPointsTotalBadge">Total: 100 Pts</span>
+          </div>
+          <h4 id="aiGeneratedQuestionText" style="font-family:var(--font-display);font-size:1.25rem;color:#fff;margin-bottom:14px;line-height:1.4;"></h4>
+          
+          <div class="answers-grid" id="aiGeneratedAnswersList" style="margin-bottom:16px;">
+            <!-- Answers list -->
+          </div>
+
+          <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+            <button type="button" id="aiRegenerateBtn" class="btn-secondary" style="font-size:0.88rem;padding:8px 16px;">🔄 Regenerate</button>
+            <button type="button" id="aiAddToBankBtn" class="btn-secondary" style="font-size:0.88rem;padding:8px 16px;">📋 Add to Bank</button>
+            <button type="button" id="aiPlayNowBtn" class="btn-primary" style="font-size:0.88rem;padding:8px 18px;">⚡ Play Now on Board</button>
+          </div>
+        </div>
+      </div>
+
       <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,0.1);padding-top:14px;display:flex;justify-content:flex-end;">
         <button class="btn-secondary close-modal-btn" style="padding:8px 24px;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Password Settings Modal (Getter & Setter) -->
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal-card" style="max-width:440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🔑 Admin Password Settings</h3>
+        <button class="close-modal-btn">&times;</button>
+      </div>
+
+      <!-- Current Password Getter -->
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="form-label">Current Admin Password:</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="adminCurrentPasswordDisplay" class="form-input" readonly style="font-weight:700;color:var(--gold-primary);background:rgba(0,0,0,0.4);" value="feudadmin">
+          <button id="copyAdminPasswordBtn" class="icon-btn" style="padding:6px 12px;">Copy</button>
+        </div>
+        <span style="font-size:0.75rem;color:var(--text-muted);display:block;margin-top:4px;">Share this password with co-hosts to grant supervision access.</span>
+      </div>
+
+      <!-- New Password Setter -->
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="form-label">Set New Password:</label>
+        <div style="display:flex;gap:8px;">
+          <input type="password" id="adminNewPasswordInput" class="form-input" placeholder="Enter new password (min 4 chars)...">
+          <button id="saveAdminPasswordBtn" class="btn-primary" style="padding:6px 14px;white-space:nowrap;">Save</button>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.1);">
+        <button id="lockScreenNowBtn" class="btn-secondary" style="font-size:0.85rem;color:#ff7675;">🔒 Lock Screen Now</button>
+        <button class="icon-btn close-modal-btn" style="font-size:0.85rem;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Admin Password Gate Overlay -->
+  <div id="adminAuthOverlay" class="admin-auth-overlay" style="display:none;">
+    <div class="admin-auth-card">
+      <div class="auth-lock-icon" style="font-size:3rem;margin-bottom:12px;">🔒</div>
+      <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--gold-primary);margin-bottom:8px;">Host Panel Protected</h2>
+      <p style="color:var(--text-muted);font-size:0.92rem;margin-bottom:20px;line-height:1.5;">Enter the Admin Password to supervise this Family Feud game session.</p>
+      <div class="form-group" style="margin-bottom:14px;">
+        <input type="password" id="adminPasswordAuthInput" class="form-input" placeholder="Enter password..." style="text-align:center;font-size:1.15rem;letter-spacing:1px;padding:12px;">
+      </div>
+      <div id="authErrorMsg" style="display:none;color:#ff5252;font-size:0.85rem;margin-bottom:12px;font-weight:700;">Incorrect password. Please try again.</div>
+      <button id="adminUnlockBtn" class="btn-primary" style="width:100%;padding:14px;font-size:1.05rem;">Unlock Admin Panel ➔</button>
+      <div style="margin-top:16px;font-size:0.8rem;color:var(--text-muted);">
+        Default password is: <code style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">feudadmin</code>
       </div>
     </div>
   </div>

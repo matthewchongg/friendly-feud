@@ -569,3 +569,60 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Fullscreen Admin Password Gate Overlay */
+.admin-auth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(4, 9, 20, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.admin-auth-card {
+  max-width: 420px;
+  width: 100%;
+  background: #0f1c3f;
+  border: 2px solid var(--gold-border);
+  border-radius: var(--radius-md);
+  padding: 36px 28px;
+  text-align: center;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), var(--shadow-gold);
+}
+
+/* Podium Rep Pill */
+.podium-rep-pill {
+  background: rgba(246, 185, 59, 0.12);
+  border: 1px dashed rgba(246, 185, 59, 0.4);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  color: var(--gold-glow);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.player-roster-item.is-podium-rep {
+  border-color: var(--gold-primary) !important;
+  background: rgba(246, 185, 59, 0.18) !important;
+}
+
+.head-rep-tag {
+  background: var(--gold-gradient);
+  color: #071330;
+  font-size: 0.7rem;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}

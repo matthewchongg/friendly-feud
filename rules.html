@@ -1,0 +1,216 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Feud - Rules and Mechanics Guide</title>
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    .rules-page-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    .rules-hero {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .rules-main-title {
+      font-family: var(--font-display);
+      font-size: 3.2rem;
+      font-weight: 900;
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .rules-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+    }
+
+    .rules-card-box {
+      background: #0f1c3f;
+      border: 1px solid rgba(246, 185, 59, 0.35);
+      border-radius: var(--radius-md);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .phase-badge {
+      display: inline-block;
+      background: var(--gold-gradient);
+      color: #071330;
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 0.85rem;
+      padding: 4px 12px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      letter-spacing: 0.8px;
+    }
+
+    .phase-title {
+      font-family: var(--font-display);
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .rules-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .rules-list li {
+      position: relative;
+      padding-left: 28px;
+      font-size: 1.02rem;
+      line-height: 1.6;
+      color: #dcdde1;
+    }
+
+    .rules-list li::before {
+      content: "➔";
+      position: absolute;
+      left: 0;
+      color: var(--gold-primary);
+      font-weight: 900;
+    }
+
+    .highlight-rule {
+      background: rgba(246, 185, 59, 0.1);
+      border-left: 4px solid var(--gold-primary);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-top: 14px;
+      font-size: 0.95rem;
+      color: var(--gold-glow);
+      font-weight: 600;
+    }
+
+    .nav-buttons-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <a href="index.html" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
+        <span class="brand-logo">★ Family Feud ★</span>
+        <span class="badge badge-gold">Official Rules</span>
+      </a>
+    </div>
+    <div class="header-actions">
+      <a href="index.html" class="icon-btn">← Back to Hub</a>
+      <a href="board.html" class="icon-btn" target="_blank">📺 Launch Board</a>
+      <a href="admin.html" class="icon-btn btn-primary" style="padding:6px 14px;">🎮 Admin Panel</a>
+    </div>
+  </header>
+
+  <main class="rules-page-container">
+    <div class="nav-buttons-bar">
+      <a href="index.html" class="icon-btn">← Back to Launcher Hub</a>
+      <span style="font-size:0.9rem;color:var(--text-muted);font-weight:700;">Standard Television Game Show Rules</span>
+    </div>
+
+    <div class="rules-hero">
+      <h1 class="rules-main-title">Rules & Mechanics</h1>
+      <p class="rules-subtitle">Complete official guide to playing and supervising live Family Feud matches.</p>
+    </div>
+
+    <!-- Phase 1: The Face-Off -->
+    <section class="rules-card-box">
+      <span class="phase-badge">Phase 1</span>
+      <h2 class="phase-title">⚡ The Face-Off Podiums</h2>
+      <ul class="rules-list">
+        <li><strong>Podium Representatives:</strong> One appointed player from each competing team approaches the podium for the initial question. Only these two players have active buzzers during the face-off.</li>
+        <li><strong>The Faster Player:</strong> The first player to hit their buzzer gets the first opportunity to answer the survey question.</li>
+        <li><strong>#1 Answer Direct Win:</strong> If the buzzer winner reveals the <strong>#1 ranked survey answer</strong>, their team immediately gains control of the board without the opponent getting a guess.</li>
+        <li><strong>Higher Rank Advantage:</strong> If the first answer is on the board but is not #1, the opposing player gets a turn to guess. Whichever player guessed the higher-ranked answer gains control of the board for their team.</li>
+        <li><strong>First Player Default:</strong> If neither player's guess appears on the board, control defaults to the first player's team line.</li>
+      </ul>
+      <div class="highlight-rule">
+        💡 <em>Supervision Tip:</em> Use the Face-Off wizard on the Admin screen to arm buzzers and record whether the answer was #1, lower rank, or a miss.
+      </div>
+    </section>
+
+    <!-- Phase 2: Playing the Board -->
+    <section class="rules-card-box">
+      <span class="phase-badge">Phase 2</span>
+      <h2 class="phase-title">🎯 Playing the Board</h2>
+      <ul class="rules-list">
+        <li><strong>Turn-Based Guessing:</strong> Members of the controlling team take individual turns in order guessing remaining survey answers on the board.</li>
+        <li><strong>No Consultation:</strong> Teammates are strictly forbidden from conferring, whispering, or gesturing during standard board play. Each guess must come solely from the player whose turn it is.</li>
+        <li><strong>20-Second Time Limit:</strong> Each player has exactly 20 seconds to state their answer once called upon by the host.</li>
+        <li><strong>Clearing the Board:</strong> If the controlling team reveals all survey answers before accumulating three strikes, they bank and keep all points for that round.</li>
+      </ul>
+      <div class="highlight-rule">
+        ⏱️ <em>Timer Enforcement:</em> Trigger the built-in 20-second countdown on the Admin panel to keep the game energetic and prevent stalling.
+      </div>
+    </section>
+
+    <!-- Phase 3: Three Strikes -->
+    <section class="rules-card-box">
+      <span class="phase-badge">Phase 3</span>
+      <h2 class="phase-title">❌ The Three Strikes Rule</h2>
+      <ul class="rules-list">
+        <li><strong>Strike (X):</strong> Every incorrect guess or time-out results in one Strike on the board accompanied by the classic buzzer sound.</li>
+        <li><strong>Accumulating 3 Strikes:</strong> Upon accumulating three strikes (XXX), the controlling team immediately loses control of the board.</li>
+        <li><strong>Opportunity to Steal:</strong> The board freezes and the round transitions to the Steal phase.</li>
+      </ul>
+    </section>
+
+    <!-- Phase 4: The Steal -->
+    <section class="rules-card-box">
+      <span class="phase-badge">Phase 4</span>
+      <h2 class="phase-title">🚨 The Steal</h2>
+      <ul class="rules-list">
+        <li><strong>15 Seconds Group Conferral:</strong> The opposing team is granted 15 seconds of open discussion to confer and agree on a single final answer.</li>
+        <li><strong>Captain Speaks:</strong> The designated team captain presents the final agreed answer to the host.</li>
+        <li><strong>Successful Steal:</strong> If the answer appears on the board, the opposing team steals all accumulated points in the round bank!</li>
+        <li><strong>Unsuccessful Steal:</strong> If the answer is not on the board, the original controlling team retains all points in the round bank.</li>
+      </ul>
+      <div class="highlight-rule">
+        🔔 <em>Sound Effect:</em> The Steal phase features a distinct gong and an urgent 15-second countdown timer.
+      </div>
+    </section>
+
+    <!-- Phase 5: Winning & Multipliers -->
+    <section class="rules-card-box">
+      <span class="phase-badge">Phase 5</span>
+      <h2 class="phase-title">🏆 Scoring & Winning the Match</h2>
+      <ul class="rules-list">
+        <li><strong>Round Multipliers:</strong> Points can be multiplied in later rounds (e.g. Round 1: 1X, Round 2: 2X, Round 3+: 3X Triple Points).</li>
+        <li><strong>Dynamic Custom Rounds:</strong> The match can be configured for any custom number of rounds (default: 3 rounds).</li>
+        <li><strong>Grand Winner:</strong> Points are tallied across all rounds. The team with the highest cumulative total is declared the Grand Winner with full screen confetti and victory fanfare!</li>
+      </ul>
+    </section>
+
+    <div style="text-align:center;margin-top:36px;">
+      <a href="index.html" class="btn-primary" style="padding:14px 32px;font-size:1.1rem;display:inline-block;text-decoration:none;">➔ Return to Game Hub</a>
+    </div>
+  </main>
+</body>
+</html>

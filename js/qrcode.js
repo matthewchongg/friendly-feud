@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lightweight QR Code Generator in pure JavaScript
  * Generates QR Code matrices and draws them onto HTML5 Canvas
  * Standard Type 1-10 Byte Mode with Error Correction Level M/L

@@ -206,7 +206,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const winnerTeam = s.faceOff.buzzWinner.team === 1 ? s.team1.name : s.team2.name;
         if (ribbonDescEl) ribbonDescEl.textContent = `BUZZ IN: ${s.faceOff.buzzWinner.playerName} (${winnerTeam})`;
       } else {
-        if (ribbonDescEl) ribbonDescEl.textContent = s.faceOff.buzzerArmed ? 'BUZZERS ARMED! FIRST TO BUZZ WINS.' : 'Waiting for Face-Off...';
+        const t1Head = s.connectedPlayers ? s.connectedPlayers.find(p => p.playerId === s.faceOff.headPlayerTeam1) : null;
+        const t2Head = s.connectedPlayers ? s.connectedPlayers.find(p => p.playerId === s.faceOff.headPlayerTeam2) : null;
+        if (t1Head && t2Head) {
+          if (ribbonDescEl) ribbonDescEl.textContent = s.faceOff.buzzerArmed ? `AT PODIUM: ${t1Head.playerName} vs ${t2Head.playerName} — BUZZERS ARMED!` : `AT PODIUM: ${t1Head.playerName} vs ${t2Head.playerName}`;
+        } else {
+          if (ribbonDescEl) ribbonDescEl.textContent = s.faceOff.buzzerArmed ? 'BUZZERS ARMED! FIRST TO BUZZ WINS.' : 'Waiting for Face-Off...';
+        }
       }
     } else if (s.phase === 'BOARD_PLAY') {
       eventBannerEl.className = 'status-ribbon';

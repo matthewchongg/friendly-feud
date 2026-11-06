@@ -440,7 +440,7 @@ class SyncEngine {
       this.retryAttempts = 0;
       console.log(`[Client] Connected to host ${targetHostId}!`);
       if (this.statusCallback) {
-        this.statusCallback({ status: 'connected', message: 'Connected to Game!', roomCode: this.roomCode });
+        this.statusCallback({ status: 'connected', message: 'Connected To Game!', roomCode: this.roomCode });
       }
 
       // Send join announcement
@@ -461,7 +461,7 @@ class SyncEngine {
 
       if (data.type === 'JOIN_CONFIRMED') {
         if (this.statusCallback) {
-          this.statusCallback({ status: 'registered', message: 'Registered with Host!', roomCode: this.roomCode });
+          this.statusCallback({ status: 'registered', message: 'Registered With Host!', roomCode: this.roomCode });
         }
         if (data.payload && data.payload.state) {
           this.notifyListeners({ type: 'STATE_UPDATE', payload: data.payload.state });
@@ -478,7 +478,7 @@ class SyncEngine {
       if (this.statusCallback) {
         this.statusCallback({
           status: 'reconnecting',
-          message: 'Disconnected from Host. Reconnecting...',
+          message: 'Disconnected From Host. Reconnecting...',
           roomCode: this.roomCode
         });
       }
@@ -496,7 +496,7 @@ class SyncEngine {
       if (this.statusCallback) {
         this.statusCallback({
           status: 'failed',
-          message: 'Connection timed out. Tap "Retry Connection" below.',
+          message: 'Connection Timed Out. Tap "Retry Connection" Below.',
           roomCode: this.roomCode
         });
       }

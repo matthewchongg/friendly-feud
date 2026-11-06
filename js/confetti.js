@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Canvas Confetti Particle System for Grand Winner Celebration
  */
 class ConfettiCannon {

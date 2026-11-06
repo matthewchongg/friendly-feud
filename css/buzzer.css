@@ -16,6 +16,20 @@ body.buzzer-body {
   height: 100vh;
   padding: 16px;
   position: relative;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+/* Glowing side outline of player's team color */
+.buzzer-container.team1-active {
+  border-left: 6px solid #2ecc71;
+  border-right: 6px solid #2ecc71;
+  box-shadow: inset 16px 0 35px -6px rgba(46, 204, 113, 0.55), inset -16px 0 35px -6px rgba(46, 204, 113, 0.55);
+}
+
+.buzzer-container.team2-active {
+  border-left: 6px solid #ff5252;
+  border-right: 6px solid #ff5252;
+  box-shadow: inset 16px 0 35px -6px rgba(255, 82, 82, 0.55), inset -16px 0 35px -6px rgba(255, 82, 82, 0.55);
 }
 
 /* Join View Card */
@@ -74,25 +88,31 @@ body.buzzer-body {
   background: rgba(9, 23, 60, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-md);
-  padding: 12px 18px;
-  margin-bottom: 16px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  gap: 8px;
 }
 
 .player-identity-box {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  flex: 1;
 }
 
 .player-identity-name {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .player-identity-team {
   font-family: var(--font-display);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -100,13 +120,139 @@ body.buzzer-body {
 
 .scores-quick-bar {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
-.quick-score {
-  font-family: var(--font-display);
+.hud-code-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
+  font-size: 0.75rem;
   font-weight: 800;
-  font-size: 1.4rem;
+}
+
+.hud-round-badge {
+  font-size: 0.8rem;
+  font-weight: 900;
+  padding: 4px 8px;
+}
+
+/* Status Indicator Button with Dot */
+.status-indicator-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 4px 10px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.status-dot-circle {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  background: #2ecc71;
+  box-shadow: 0 0 8px #2ecc71;
+}
+
+.status-indicator-btn.status-connected .status-dot-circle {
+  background: #2ecc71;
+  box-shadow: 0 0 8px #2ecc71;
+}
+
+.status-indicator-btn.status-connecting .status-dot-circle,
+.status-indicator-btn.status-reconnecting .status-dot-circle {
+  background: #f1c40f;
+  box-shadow: 0 0 8px #f1c40f;
+}
+
+.status-indicator-btn.status-offline .status-dot-circle {
+  background: #ff5252;
+  box-shadow: 0 0 8px #ff5252;
+}
+
+/* My Team Live Score Card (No Enemy Team Points Displayed!) */
+.my-team-score-card {
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  transition: border-color 0.25s ease;
+}
+
+.my-team-score-card.is-team-1 {
+  border-color: rgba(46, 204, 113, 0.6);
+  background: linear-gradient(90deg, rgba(46, 204, 113, 0.15) 0%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+.my-team-score-card.is-team-2 {
+  border-color: rgba(255, 82, 82, 0.6);
+  background: linear-gradient(90deg, rgba(255, 82, 82, 0.15) 0%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+.my-team-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.my-team-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+.podium-role-badge {
+  background: var(--gold-gradient);
+  color: #071330;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.my-team-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.my-team-name {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #fff;
+}
+
+.my-team-points {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--gold-primary);
+}
+
+/* Responsive UI rule: Hide room code and status text if cramped */
+@media (max-width: 440px) {
+  .hud-code-badge {
+    display: none !important;
+  }
+  .status-label-text {
+    display: none !important;
+  }
+  .status-indicator-btn {
+    padding: 6px 8px;
+  }
 }
 
 /* Giant Interactive Buzzer Button */

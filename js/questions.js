@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Family Feud Questions Bank & Management
  * Supports custom question creation, CSV & Excel (.xlsx) spreadsheet uploads,
  * JSON import/export, and downloadable sample templates.
@@ -401,6 +401,285 @@ class QuestionManager {
       lines.push(row);
     }
     return lines;
+  }
+
+  /**
+   * AI Question Generator with Strict PG Guardrails
+   * Supports Google Gemini API (if key provided) + Smart Built-in PG Procedural Engine
+   */
+  async generateQuestionWithAI(topicPrompt, apiKey = '') {
+    const rawPrompt = String(topicPrompt || '').trim();
+    if (!rawPrompt) {
+      throw new Error('Please enter a topic prompt (e.g. "Beach vacation essentials", "Excuses for being late").');
+    }
+
+    // 1. Strict PG Content & Safety Guardrails
+    const nonPgPattern = /\b(sex|nude|naked|porn|drug|cocaine|weed|alcohol|beer|whiskey|drunk|kill|murder|gun|weapon|swear|damn|hell|ass|bitch|shit|fuck|terror|violence|hate)\b/i;
+    if (nonPgPattern.test(rawPrompt)) {
+      throw new Error('🛡️ PG Guardrail Alert: Prompt contains sensitive or inappropriate terms. All questions must be strictly family-friendly and suitable for all ages.');
+    }
+
+    // 2. If Gemini API Key is provided, call Google Gemini Interactions API
+    if (apiKey && apiKey.trim().length > 15) {
+      try {
+        const cleanKey = apiKey.trim();
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cleanKey}`;
+        
+        const systemInstruction = `You are an official television game show question writer for Family Feud.
+All questions and answers MUST be strictly PG-rated, family-friendly, wholesome, clean, and fun for all ages.
+Never output sexual, violent, offensive, crude, derogatory, political, or mature themes.
+Based on the user's topic prompt, generate 1 creative survey question and 4 to 8 ranked survey answers.
+Assign realistic survey points (e.g. #1 answer has ~30-45 points, following answers taper down, total sum is approx 100 points).
+Respond with valid raw JSON only (no markdown, no backticks, no extra text) formatted exactly as:
+{
+  "question": "Name something...",
+  "answers": [
+    {"text": "Answer 1", "points": 38},
+    {"text": "Answer 2", "points": 25},
+    {"text": "Answer 3", "points": 18},
+    {"text": "Answer 4", "points": 11},
+    {"text": "Answer 5", "points": 8}
+  ]
+}`;
+
+        const reqBody = {
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: `Topic prompt: "${rawPrompt}". Generate 1 family-friendly survey question with 4 to 8 ranked answers summing to approx 100 points.` }]
+            }
+          ],
+          systemInstruction: {
+            parts: [{ text: systemInstruction }]
+          },
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 600
+          },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_LOW_AND_ABOVE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_LOW_AND_ABOVE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_LOW_AND_ABOVE" }
+          ]
+        };
+
+        const resp = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reqBody)
+        });
+
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          console.warn('Gemini API call failed, falling back to smart procedural generator:', errData);
+          return this.generateProceduralQuestion(rawPrompt);
+        }
+
+        const data = await resp.json();
+        const candidate = data.candidates && data.candidates[0];
+        if (!candidate || !candidate.content || !candidate.content.parts) {
+          return this.generateProceduralQuestion(rawPrompt);
+        }
+
+        let rawText = candidate.content.parts[0].text || '';
+        rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+        const parsed = JSON.parse(rawText);
+        if (!parsed.question || !Array.isArray(parsed.answers) || parsed.answers.length === 0) {
+          return this.generateProceduralQuestion(rawPrompt);
+        }
+
+        // Validate PG content on output as well
+        if (nonPgPattern.test(parsed.question) || parsed.answers.some(a => nonPgPattern.test(a.text))) {
+          throw new Error('🛡️ Output safety violation: Generated content did not pass PG verification.');
+        }
+
+        return {
+          success: true,
+          source: 'Gemini AI Live',
+          question: {
+            id: 'ai-' + Date.now(),
+            question: parsed.question,
+            answers: parsed.answers.map(a => ({
+              text: String(a.text).trim(),
+              points: parseInt(a.points, 10) || 5
+            })).slice(0, 8)
+          }
+        };
+      } catch (e) {
+        console.warn('Gemini error, using Smart Procedural Engine:', e);
+        return this.generateProceduralQuestion(rawPrompt);
+      }
+    }
+
+    // 3. Smart Built-In PG Procedural Engine (Instant & 100% Free)
+    return this.generateProceduralQuestion(rawPrompt);
+  }
+
+  generateProceduralQuestion(prompt) {
+    const p = prompt.toLowerCase();
+    
+    // Curated PG Knowledge Banks
+    const banks = [
+      {
+        match: ['beach', 'vacation', 'summer', 'holiday', 'trip', 'island', 'travel'],
+        question: `Name something people always pack when going to the beach.`,
+        answers: [
+          { text: "Sunscreen / Sunblock", points: 36 },
+          { text: "Beach Towel", points: 26 },
+          { text: "Swimsuit / Trunks", points: 16 },
+          { text: "Sunglasses", points: 11 },
+          { text: "Umbrella / Sun Shade", points: 5 },
+          { text: "Snacks / Water Cooler", points: 4 },
+          { text: "Flip-flops / Sandals", points: 2 }
+        ]
+      },
+      {
+        match: ['sleep', 'bed', 'night', 'insomnia', 'awake', 'tired', 'dream'],
+        question: `Name something people do when they can't fall asleep at night.`,
+        answers: [
+          { text: "Scroll on phone / Social media", points: 44 },
+          { text: "Read a book", points: 21 },
+          { text: "Watch TV / Streaming", points: 15 },
+          { text: "Count sheep in head", points: 9 },
+          { text: "Drink warm milk or water", points: 6 },
+          { text: "Toss and turn in bed", points: 5 }
+        ]
+      },
+      {
+        match: ['kitchen', 'cooking', 'food', 'chef', 'baking', 'cook', 'recipe', 'meal'],
+        question: `Name a common disaster that can happen while cooking dinner.`,
+        answers: [
+          { text: "Burning / Charring the food", points: 41 },
+          { text: "Setting off the smoke alarm", points: 24 },
+          { text: "Adding way too much salt or spice", points: 15 },
+          { text: "Pot boiling over on stove", points: 10 },
+          { text: "Cutting a finger while chopping", points: 6 },
+          { text: "Dropping food on the floor", points: 4 }
+        ]
+      },
+      {
+        match: ['work', 'boss', 'office', 'job', 'coworker', 'meeting', 'zoom'],
+        question: `Name an annoying habit of a coworker in an office.`,
+        answers: [
+          { text: "Talking too loudly on the phone", points: 38 },
+          { text: "Microwaving smelly food", points: 25 },
+          { text: "Arriving late to meetings", points: 17 },
+          { text: "Stealing pens or desk items", points: 9 },
+          { text: "Chewing gum noisily", points: 7 },
+          { text: "Leaving dirty mugs in the sink", points: 4 }
+        ]
+      },
+      {
+        match: ['pet', 'dog', 'cat', 'animal', 'puppy', 'kitten'],
+        question: `Name something funny or naughty a pet dog does when nobody is watching.`,
+        answers: [
+          { text: "Jumps on furniture / Bed", points: 39 },
+          { text: "Steals food off the counter", points: 28 },
+          { text: "Chews on shoes or socks", points: 16 },
+          { text: "Digs through the trash bin", points: 9 },
+          { text: "Barks at imaginary ghosts", points: 5 },
+          { text: "Chases its own tail", points: 3 }
+        ]
+      },
+      {
+        match: ['school', 'teacher', 'student', 'class', 'homework', 'exam'],
+        question: `Name a classic excuse a student gives for not doing their homework.`,
+        answers: [
+          { text: "The dog ate it", points: 40 },
+          { text: "Forgot it at home", points: 26 },
+          { text: "Computer or printer broke", points: 16 },
+          { text: "Was sick / Had a headache", points: 10 },
+          { text: "Thought it was due tomorrow", points: 5 },
+          { text: "Lost the worksheet", points: 3 }
+        ]
+      },
+      {
+        match: ['superhero', 'hero', 'power', 'comic', 'batman', 'marvel'],
+        question: `Name a superpower people wish they could use in daily everyday life.`,
+        answers: [
+          { text: "Teleportation / Instant travel", points: 42 },
+          { text: "Invisibility", points: 24 },
+          { text: "Flying", points: 16 },
+          { text: "Mind reading", points: 10 },
+          { text: "Time travel / Rewind time", points: 5 },
+          { text: "Super strength", points: 3 }
+        ]
+      },
+      {
+        match: ['rain', 'rainy', 'storm', 'weather', 'cold', 'winter'],
+        question: `Name something cozy people love to do on a cold, rainy day.`,
+        answers: [
+          { text: "Watch movies under a blanket", points: 43 },
+          { text: "Drink hot chocolate / Coffee / Tea", points: 26 },
+          { text: "Take a long afternoon nap", points: 16 },
+          { text: "Read a favorite novel", points: 8 },
+          { text: "Bake fresh cookies or soup", points: 5 },
+          { text: "Listen to the rain fall", points: 2 }
+        ]
+      },
+      {
+        match: ['road', 'car', 'drive', 'traffic', 'highway'],
+        question: `Name something people do to pass the time while stuck in bumper-to-bumper traffic.`,
+        answers: [
+          { text: "Sing loudly to the radio", points: 41 },
+          { text: "Listen to a podcast or audiobook", points: 25 },
+          { text: "Call a family member or friend", points: 16 },
+          { text: "People-watch other drivers", points: 9 },
+          { text: "Snack on car treats", points: 6 },
+          { text: "Check GPS for faster detour", points: 3 }
+        ]
+      },
+      {
+        match: ['shopping', 'mall', 'store', 'supermarket', 'grocery'],
+        question: `Name something people always end up buying at the store even though it wasn't on the list.`,
+        answers: [
+          { text: "Candy / Chocolate bar", points: 37 },
+          { text: "Chips / Snacks", points: 27 },
+          { text: "Bakery pastries / Fresh bread", points: 16 },
+          { text: "Soda or iced drink", points: 10 },
+          { text: "Items on clearance / sale", points: 6 },
+          { text: "Magazines at checkout", points: 4 }
+        ]
+      }
+    ];
+
+    // Find best matching curated bank
+    for (const b of banks) {
+      if (b.match.some(m => p.includes(m))) {
+        return {
+          success: true,
+          source: 'Smart AI Engine (Curated PG)',
+          question: {
+            id: 'ai-' + Date.now(),
+            question: b.question,
+            answers: b.answers
+          }
+        };
+      }
+    }
+
+    // Dynamic contextual PG generator for any custom topic
+    const cleanTopic = prompt.replace(/[^\w\s-]/g, '').trim();
+    const formattedTopic = cleanTopic.charAt(0).toUpperCase() + cleanTopic.slice(1);
+    
+    return {
+      success: true,
+      source: 'Smart AI Engine (Contextual)',
+      question: {
+        id: 'ai-' + Date.now(),
+        question: `Name something people associate most with "${formattedTopic}".`,
+        answers: [
+          { text: `Popular ${formattedTopic} trends / traditions`, points: 38 },
+          { text: `Memories from childhood / family`, points: 24 },
+          { text: `Having fun with close friends`, points: 18 },
+          { text: `Planning and preparing in advance`, points: 11 },
+          { text: `Sharing photos on social media`, points: 6 },
+          { text: `Relaxing and having a good time`, points: 3 }
+        ]
+      }
+    };
   }
 }
 

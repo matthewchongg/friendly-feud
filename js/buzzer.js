@@ -18,13 +18,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const joinStatusMsg = document.getElementById('joinStatusMsg');
 
   // DOM Elements - Buzzer View
+  const buzzerContainer = document.querySelector('.buzzer-container');
   const playerDisplayName = document.getElementById('playerDisplayName');
   const playerDisplayTeam = document.getElementById('playerDisplayTeam');
-  const team1HudScore = document.getElementById('team1HudScore');
-  const team2HudScore = document.getElementById('team2HudScore');
+  const myTeamScoreCard = document.getElementById('myTeamScoreCard');
+  const myTeamNameDisplay = document.getElementById('myTeamNameDisplay');
+  const myTeamScoreDisplay = document.getElementById('myTeamScoreDisplay');
+  const myPodiumRoleBadge = document.getElementById('myPodiumRoleBadge');
   const giantBuzzerBtn = document.getElementById('giantBuzzerBtn');
   const buzzerStatusText = document.getElementById('buzzerStatusText');
   const clientStatusBadge = document.getElementById('clientStatusBadge');
+  const clientStatusDot = document.getElementById('clientStatusDot');
+  const clientStatusText = document.getElementById('clientStatusText');
   const buzzerRoomCodeTag = document.getElementById('buzzerRoomCodeTag');
   const currentRoundTag = document.getElementById('currentRoundTag');
   const buzzerDisconnectAlert = document.getElementById('buzzerDisconnectAlert');
@@ -133,23 +138,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!clientStatusBadge) return;
 
     if (status.status === 'connected' || status.status === 'registered') {
-      clientStatusBadge.className = 'badge badge-green';
-      clientStatusBadge.textContent = '🟢 Online';
+      clientStatusBadge.className = 'status-indicator-btn status-connected';
+      if (clientStatusDot) clientStatusDot.className = 'status-dot-circle';
+      if (clientStatusText) clientStatusText.textContent = 'Online';
       if (buzzerDisconnectAlert) buzzerDisconnectAlert.style.display = 'none';
     } else if (status.status === 'connecting') {
-      clientStatusBadge.className = 'badge badge-gold';
-      clientStatusBadge.textContent = '🟡 Connecting...';
+      clientStatusBadge.className = 'status-indicator-btn status-connecting';
+      if (clientStatusDot) clientStatusDot.className = 'status-dot-circle';
+      if (clientStatusText) clientStatusText.textContent = 'Connecting...';
       if (buzzerDisconnectAlert) buzzerDisconnectAlert.style.display = 'none';
     } else if (status.status === 'reconnecting') {
-      clientStatusBadge.className = 'badge badge-gold';
-      clientStatusBadge.textContent = '🟡 Retrying...';
+      clientStatusBadge.className = 'status-indicator-btn status-reconnecting';
+      if (clientStatusDot) clientStatusDot.className = 'status-dot-circle';
+      if (clientStatusText) clientStatusText.textContent = 'Retrying...';
       if (buzzerDisconnectAlert) buzzerDisconnectAlert.style.display = 'flex';
-      if (buzzerDisconnectText) buzzerDisconnectText.textContent = status.message || 'Connecting to Game Host...';
+      if (buzzerDisconnectText) buzzerDisconnectText.textContent = 'Connecting To Host Room...';
     } else {
-      clientStatusBadge.className = 'badge badge-red';
-      clientStatusBadge.textContent = '🔴 Offline';
+      clientStatusBadge.className = 'status-indicator-btn status-offline';
+      if (clientStatusDot) clientStatusDot.className = 'status-dot-circle';
+      if (clientStatusText) clientStatusText.textContent = 'Offline';
       if (buzzerDisconnectAlert) buzzerDisconnectAlert.style.display = 'flex';
-      if (buzzerDisconnectText) buzzerDisconnectText.textContent = status.message || 'Connection lost. Tap Reconnect.';
+      if (buzzerDisconnectText) buzzerDisconnectText.textContent = 'Connection Lost. Tap To Reconnect.';
     }
   }
 
@@ -213,23 +222,60 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update custom team names on join buttons too
     updateJoinTeamNames(state.team1.name, state.team2.name);
 
-    // Update HUD Scores & Round
-    if (team1HudScore) team1HudScore.textContent = `${state.team1.name}: ${state.team1.score}`;
-    if (team2HudScore) team2HudScore.textContent = `${state.team2.name}: ${state.team2.score}`;
-    if (currentRoundTag) currentRoundTag.textContent = `Round ${state.currentRound}`;
+    // 1. Glowing Side Outlines (User's Team Color)
+    if (buzzerContainer && playerInfo) {
+      buzzerContainer.classList.toggle('team1-active', playerInfo.team === 1);
+      buzzerContainer.classList.toggle('team2-active', playerInfo.team === 2);
+    }
+
+    // 2. Display ONLY Player's Own Team Score & Name (Enemy Points Hidden!)
+    if (playerInfo) {
+      const myTeam = playerInfo.team === 1 ? state.team1 : state.team2;
+      if (myTeamScoreCard) {
+        myTeamScoreCard.classList.toggle('is-team-1', playerInfo.team === 1);
+        myTeamScoreCard.classList.toggle('is-team-2', playerInfo.team === 2);
+      }
+      if (myTeamNameDisplay) myTeamNameDisplay.textContent = myTeam.name || (playerInfo.team === 1 ? 'Team 1' : 'Team 2');
+      if (myTeamScoreDisplay) myTeamScoreDisplay.textContent = `${myTeam.score || 0} PTS`;
+
+      // Check if this player is appointed Face-Off representative (Head Player)
+      const isHead = state.faceOff && (
+        (playerInfo.team === 1 && state.faceOff.headPlayerTeam1 === playerInfo.playerId) ||
+        (playerInfo.team === 2 && state.faceOff.headPlayerTeam2 === playerInfo.playerId)
+      );
+
+      if (myPodiumRoleBadge) {
+        myPodiumRoleBadge.style.display = isHead ? 'inline-block' : 'none';
+      }
+    }
+
+    // 3. Compact HUD: Round number #1 format
+    if (currentRoundTag) currentRoundTag.textContent = `#${state.currentRound}`;
 
     updatePlayerTeamDisplay();
 
-    // Buzzer lock state
+    // 4. Head Player Buzzer availability logic
     const isArmed = state.faceOff && state.faceOff.buzzerArmed;
     const hasWinner = state.faceOff && state.faceOff.buzzWinner;
+
+    const isHead = playerInfo && state.faceOff && (
+      (playerInfo.team === 1 && state.faceOff.headPlayerTeam1 === playerInfo.playerId) ||
+      (playerInfo.team === 2 && state.faceOff.headPlayerTeam2 === playerInfo.playerId)
+    );
 
     if (!isArmed && !hasWinner) {
       hasBuzzedThisTurn = false;
       setBuzzerState('LOCKED', 'BUZZERS LOCKED');
     } else if (isArmed && !hasWinner) {
       hasBuzzedThisTurn = false;
-      setBuzzerState('ARMED', 'PRESS TO BUZZ!');
+      if (isHead) {
+        setBuzzerState('ARMED', 'PRESS TO BUZZ! (AT PODIUM)');
+      } else {
+        const headId = playerInfo.team === 1 ? state.faceOff.headPlayerTeam1 : state.faceOff.headPlayerTeam2;
+        const headPlayer = state.connectedPlayers ? state.connectedPlayers.find(p => p.playerId === headId) : null;
+        const repName = headPlayer ? headPlayer.playerName : 'Head Player';
+        setBuzzerState('SPECTATING', `SPECTATING: ${repName} is buzzing for your team!`);
+      }
     } else if (hasWinner) {
       const winner = state.faceOff.buzzWinner;
       const isMe = playerInfo && winner.playerId === playerInfo.playerId;
@@ -264,10 +310,11 @@ document.addEventListener('DOMContentLoaded', () => {
         giantBuzzerBtn.textContent = 'BUZZ!';
         break;
 
+      case 'SPECTATING':
       case 'LOCKED':
         giantBuzzerBtn.disabled = true;
         giantBuzzerBtn.classList.add('locked');
-        giantBuzzerBtn.textContent = 'LOCKED';
+        giantBuzzerBtn.textContent = type === 'SPECTATING' ? 'WAIT' : 'LOCKED';
         break;
 
       case 'BUZZED_1ST':
@@ -286,6 +333,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function triggerBuzz() {
     if (!playerInfo || hasBuzzedThisTurn || (giantBuzzerBtn && giantBuzzerBtn.disabled)) {
+      return;
+    }
+
+    // Strictly verify appointed head player for the round
+    const isHead = currentGameState && currentGameState.faceOff && (
+      (playerInfo.team === 1 && currentGameState.faceOff.headPlayerTeam1 === playerInfo.playerId) ||
+      (playerInfo.team === 2 && currentGameState.faceOff.headPlayerTeam2 === playerInfo.playerId)
+    );
+
+    if (!isHead && currentGameState && currentGameState.faceOff && currentGameState.faceOff.buzzerArmed) {
+      console.log('[Buzzer] Buzz rejected: Player is not appointed head player at the podium.');
       return;
     }
 

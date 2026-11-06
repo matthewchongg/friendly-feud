@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Family Feud Sound Effects Synthesizer using Web Audio API
  * 100% standalone - no external MP3 files required!
  */
