@@ -1,4 +1,4 @@
-﻿/* Family Feud Big Screen / Projector Game Board */
+/* Family Feud Big Screen / Projector Game Board */
 
 .board-container {
   display: flex;
@@ -7,7 +7,8 @@
   padding: 16px 28px;
   background: radial-gradient(ellipse at center, #112866 0%, #061129 100%);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* Confetti Canvas overlay */
@@ -344,13 +345,29 @@
   animation: strikeShake 0.45s ease forwards;
 }
 
-/* Face-Off & Steal Status Banners */
-.event-banner-bar {
-  margin-top: 18px;
+/* Face-Off & Steal Status Banners & Board Footer */
+.board-footer {
+  margin-top: 20px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+}
+
+.event-banner-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.board-quick-tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .status-ribbon {
@@ -471,18 +488,304 @@
   color: var(--gold-primary);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .stage-hud {
-    grid-template-columns: 1fr;
+    grid-template-columns: 240px 1fr 240px;
+    gap: 14px;
+  }
+  .team-score {
+    font-size: 3rem;
+  }
+  .bank-score {
+    font-size: 3.2rem;
+  }
+  .bank-podium {
+    min-width: 200px;
+    padding: 8px 24px;
+  }
+  .feud-board-frame {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 860px) {
+  .board-container {
+    padding: 14px 16px;
+  }
+  .stage-hud {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .team-scoreboard {
+    padding: 10px 12px;
+  }
+  .team-name {
+    font-size: 1.15rem;
+  }
+  .team-score {
+    font-size: 2.3rem;
+  }
+  .round-pill-badge {
+    font-size: 0.9rem;
+    padding: 4px 14px;
+  }
+  .bank-podium {
+    min-width: 160px;
+    padding: 6px 18px;
+    border-width: 3px;
+  }
+  .bank-score {
+    font-size: 2.4rem;
+  }
+  .question-marquee {
+    padding: 8px 16px;
+    margin-bottom: 14px;
+  }
+  .question-text {
+    font-size: 1.25rem;
+  }
+  .feud-board-frame {
+    padding: 16px 14px;
+    border-width: 6px;
+    border-radius: 20px;
+  }
+  .feud-board-frame::before {
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    border-width: 2.5px;
+    border-radius: 26px;
+  }
+  .feud-grid {
+    gap: 12px 16px;
+  }
+  .card-slot {
+    height: 62px;
+  }
+  .slot-number-circle {
+    width: 42px;
+    height: 42px;
+    font-size: 1.6rem;
+  }
+  .card-answer-text {
+    font-size: 1.15rem;
+  }
+  .card-points-box {
+    min-width: 50px;
+    height: 44px;
+    font-size: 1.5rem;
+  }
+  .strike-big-x {
+    font-size: 6.5rem;
+  }
+  .strikes-overlay {
+    gap: 18px;
+  }
+  .board-footer {
+    flex-direction: column;
+    align-items: center;
     gap: 12px;
+  }
+  .event-banner-bar {
+    justify-content: center;
+  }
+  .board-quick-tools {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .board-container {
+    padding: 10px 10px 16px;
+  }
+  .stage-hud {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .stage-center {
+    order: -1;
+    grid-column: 1 / -1;
+    margin-bottom: 2px;
+  }
+  .team-scoreboard {
+    padding: 8px 6px;
+    border-width: 2px;
+    border-radius: var(--radius-sm);
+  }
+  .team-name {
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+  }
+  .team-score {
+    font-size: 1.85rem;
+  }
+  .turn-pill {
+    padding: 2px 8px;
+    font-size: 0.65rem;
+    margin-top: 4px;
+  }
+  .round-pill-badge {
+    font-size: 0.78rem;
+    padding: 3px 12px;
+  }
+  .bank-podium {
+    min-width: 140px;
+    padding: 4px 16px;
+    border-width: 3px;
+    border-radius: var(--radius-sm);
+  }
+  .bank-label {
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+  }
+  .bank-score {
+    font-size: 2.1rem;
+  }
+  .question-marquee {
+    padding: 6px 10px;
+    margin-bottom: 10px;
+  }
+  .question-text {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+  .feud-board-frame {
+    padding: 10px 8px;
+    border-width: 4px;
+    border-radius: 14px;
+  }
+  .feud-board-frame::before {
+    top: -6px;
+    left: -6px;
+    right: -6px;
+    bottom: -6px;
+    border-width: 2px;
+    border-radius: 18px;
   }
   .feud-grid {
     grid-template-columns: 1fr;
+    gap: 8px;
   }
   .card-slot {
-    height: 68px;
+    height: 48px;
+  }
+  .card-face {
+    border-radius: 6px;
+  }
+  .card-front {
+    border-width: 2px;
+  }
+  .card-back {
+    border-width: 2px;
+    padding: 0 10px;
+  }
+  .slot-number-circle {
+    width: 32px;
+    height: 32px;
+    font-size: 1.15rem;
+    border-width: 1.5px;
   }
   .card-answer-text {
-    font-size: 1.25rem;
+    font-size: 0.95rem;
+    padding-right: 8px;
+  }
+  .card-points-box {
+    min-width: 40px;
+    height: 34px;
+    font-size: 1.15rem;
+    border-width: 1.5px;
+  }
+  .strikes-overlay {
+    gap: 10px;
+  }
+  .strike-big-x {
+    font-size: 3.8rem;
+  }
+  .status-ribbon {
+    padding: 6px 14px;
+    gap: 8px;
+    border-radius: 18px;
+  }
+  .ribbon-title {
+    font-size: 0.88rem;
+  }
+  .ribbon-desc {
+    font-size: 0.82rem;
+  }
+  .countdown-badge {
+    padding: 4px 12px;
+    font-size: 1.05rem;
+    border-radius: 14px;
+  }
+  .board-quick-tools {
+    gap: 6px;
+  }
+  .board-quick-tools .icon-btn,
+  .board-quick-tools .badge {
+    padding: 5px 9px;
+    font-size: 0.74rem;
+  }
+  .winner-card {
+    padding: 22px 14px;
+  }
+  .trophy-icon {
+    font-size: 3.5rem;
+    margin-bottom: 6px;
+  }
+  .winner-headline {
+    font-size: 1.7rem;
+  }
+  .winner-team-name {
+    font-size: 1.4rem;
+    margin-bottom: 12px;
+  }
+  .final-scores-box {
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .final-score-col {
+    min-width: 105px;
+    padding: 10px 12px;
+  }
+  .final-score-num {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .feud-board-frame::before {
+    display: none;
+  }
+  .feud-board-frame {
+    padding: 8px 6px;
+    border-width: 3px;
+  }
+  .card-slot {
+    height: 44px;
+  }
+  .card-answer-text {
+    font-size: 0.85rem;
+  }
+  .card-points-box {
+    min-width: 36px;
+    height: 32px;
+    font-size: 1.05rem;
+  }
+  .strike-big-x {
+    font-size: 2.9rem;
+  }
+  .board-quick-tools .icon-btn,
+  .board-quick-tools .badge {
+    padding: 4px 7px;
+    font-size: 0.7rem;
+  }
+  .bank-score {
+    font-size: 1.85rem;
+  }
+  .team-score {
+    font-size: 1.6rem;
   }
 }

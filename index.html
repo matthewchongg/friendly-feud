@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -111,63 +111,67 @@
       box-shadow: 0 4px 15px rgba(235, 47, 6, 0.4);
     }
 
-    /* Rules Section */
+    /* Rules Callout Section */
     .rules-section {
-      max-width: 1100px;
+      max-width: 1150px;
       margin: 0 auto 60px;
       padding: 0 20px;
     }
 
     .rules-card {
       background: #0d1836;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 2px solid var(--gold-border);
       border-radius: var(--radius-md);
-      padding: 30px;
+      padding: 24px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     }
 
-    .rules-header {
+    .rules-card-info {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .rules-card-icon {
+      font-size: 2.8rem;
+      line-height: 1;
+    }
+
+    .rules-card-title {
       font-family: var(--font-display);
-      font-size: 1.9rem;
-      font-weight: 900;
-      color: var(--gold-primary);
-      text-align: center;
-      margin-bottom: 24px;
-      letter-spacing: 0.8px;
-    }
-
-    .rules-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 22px;
-    }
-
-    .rule-block {
-      background: rgba(0, 0, 0, 0.3);
-      border-left: 4px solid var(--gold-primary);
-      padding: 16px 20px;
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-    }
-
-    .rule-block h4 {
-      font-family: var(--font-display);
-      font-size: 1.25rem;
+      font-size: 1.45rem;
       font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 8px;
+      color: var(--gold-primary);
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
     }
 
-    .rule-block p {
+    .rules-card-desc {
       font-size: 0.95rem;
       color: var(--text-muted);
-      line-height: 1.55;
+      line-height: 1.5;
     }
 
     @media (max-width: 860px) {
       .launcher-grid {
         grid-template-columns: 1fr;
       }
-      .rules-grid {
-        grid-template-columns: 1fr;
+      .rules-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 22px 18px;
+      }
+      .rules-card-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+      }
+      .rules-card .card-action-btn {
+        width: 100%;
       }
       .main-title {
         font-size: 2.8rem;
@@ -191,9 +195,6 @@
     <section class="welcome-hero">
       <h1 class="main-title">Family Feud Live</h1>
       <p class="sub-title">Complete Game Show Suite featuring Custom Team Names, Spreadsheet Upload (CSV & Excel), Custom Rounds, Unlimited Mobile Buzzers, and Admin Supervision.</p>
-      <div style="display:flex;justify-content:center;gap:12px;margin-top:14px;">
-        <a href="rules.html" class="icon-btn" style="padding:8px 18px;font-size:0.95rem;background:rgba(246,185,59,0.12);border-color:var(--gold-border);color:var(--gold-primary);">📖 Read Game Rules & Mechanics</a>
-      </div>
     </section>
 
     <!-- 3 Action Launcher Cards -->
@@ -229,34 +230,17 @@
       </div>
     </section>
 
-    <!-- Rules & Mechanics Summary -->
+    <!-- Rules & Mechanics Quick Callout (Non-repetitive: link to full rules page only) -->
     <section class="rules-section">
       <div class="rules-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-          <h3 class="rules-header" style="margin-bottom:0;text-align:left;">Rules and Mechanics Guide</h3>
-          <a href="rules.html" class="icon-btn" style="border-color:var(--gold-border);color:var(--gold-primary);">View Full Rules Page ➔</a>
-        </div>
-        <div class="rules-grid">
-          <div class="rule-block">
-            <h4>1. The Face-Off</h4>
-            <p>One representative from each competing group approaches the podium for the initial question. The faster player to hit the buzzer answers. Revealing the <strong>#1 Answer</strong> gives immediate board control. If lower, the 2nd player guesses: higher rank gains control. If neither guesses on the board, control defaults to the first player's team.</p>
-          </div>
-
-          <div class="rule-block">
-            <h4>2. Playing the Board</h4>
-            <p>Members of the controlling team take individual turns guessing remaining answers. <strong>No consultation or hints allowed!</strong> Each player has a <strong>20-second time limit</strong> once called upon.</p>
-          </div>
-
-          <div class="rule-block">
-            <h4>3. Three Strikes Rule</h4>
-            <p>Every incorrect guess results in one Strike (X). Upon accumulating <strong>Three Strikes</strong>, the controlling team immediately loses control and the opposing team gets an opportunity to steal!</p>
-          </div>
-
-          <div class="rule-block">
-            <h4>4. The Steal & Winning</h4>
-            <p>The opposing team gets <strong>15 seconds of group conferral</strong>. The designated captain presents the answer: if on the board, the opposing team steals ALL accumulated round points! Points are tallied across all rounds to crown the champion.</p>
+        <div class="rules-card-info">
+          <div class="rules-card-icon">📖</div>
+          <div>
+            <h3 class="rules-card-title">Official Game Show Rules & Mechanics</h3>
+            <p class="rules-card-desc">Learn about the Head Player Face-Off, 3-Strikes Steal sequence, scoring multipliers, and host guidelines.</p>
           </div>
         </div>
+        <a href="rules.html" class="card-action-btn btn-gold" style="white-space:nowrap;padding:12px 24px;">View Full Rules Page ➔</a>
       </div>
     </section>
   </main>
