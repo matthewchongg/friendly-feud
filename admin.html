@@ -201,11 +201,19 @@
             Ready for Question...
           </div>
 
-          <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
-            <label style="font-size:0.82rem;color:var(--text-muted);font-weight:700;white-space:nowrap;">Quick Switch:</label>
-            <select id="adminQuestionSelect" class="form-input" style="padding:6px 10px;font-size:0.88rem;flex:1;">
-              <!-- Populated dynamically -->
-            </select>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <label style="font-size:0.82rem;color:var(--gold-glow);font-weight:800;white-space:nowrap;">📁 Folder:</label>
+              <select id="adminFolderFilterSelect" class="form-input" style="padding:6px 10px;font-size:0.85rem;min-width:140px;background:#0d1836;border-color:var(--gold-border);">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:200px;">
+              <label style="font-size:0.82rem;color:var(--text-muted);font-weight:700;white-space:nowrap;">Question:</label>
+              <select id="adminQuestionSelect" class="form-input" style="padding:6px 10px;font-size:0.88rem;flex:1;">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
           </div>
         </div>
 
@@ -426,6 +434,25 @@
 
       <!-- TAB 1: QUESTION BANK LIST -->
       <div class="tab-content-panel active" id="tabBank">
+        <!-- Folder Navigation & Management Bar -->
+        <div class="folder-nav-bar" style="background:rgba(0,0,0,0.35);padding:10px 14px;border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.12);margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:0.85rem;font-weight:800;color:var(--gold-primary);text-transform:uppercase;font-family:var(--font-display);">📁 Question Folders:</span>
+              <span id="activeFolderNameBadge" class="badge badge-gold" style="font-size:0.75rem;">All Questions</span>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button type="button" id="addNewFolderBtn" class="btn-primary" style="padding:4px 10px;font-size:0.78rem;">➕ New Folder</button>
+              <button type="button" id="renameCurrentFolderBtn" class="icon-btn" style="padding:4px 8px;font-size:0.78rem;display:none;">✏️ Rename</button>
+              <button type="button" id="deleteCurrentFolderBtn" class="icon-btn" style="padding:4px 8px;font-size:0.78rem;color:var(--strike-red);display:none;">🗑️ Delete</button>
+            </div>
+          </div>
+          <!-- Folder Pills Container -->
+          <div id="folderPillsContainer" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <!-- Populated dynamically with .folder-pill -->
+          </div>
+        </div>
+
         <!-- Search & Actions Bar -->
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
           <input type="text" id="qSearchInput" class="form-input" placeholder="🔍 Search question prompt or answer..." style="flex:1;min-width:220px;padding:8px 14px;">
@@ -455,6 +482,13 @@
             <button id="downloadTemplateBtn" class="btn-primary" style="font-size:0.82rem;padding:7px 14px;">
               📥 Download Sample Spreadsheet Template
             </button>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+            <label style="font-size:0.85rem;font-weight:700;color:var(--gold-glow);white-space:nowrap;">📁 Import into Folder:</label>
+            <select id="spreadsheetFolderSelect" class="form-input" style="flex:1;min-width:180px;padding:6px 10px;font-size:0.85rem;background:#0d1836;border-color:var(--gold-border);">
+              <!-- Populated dynamically -->
+            </select>
           </div>
 
           <div class="spreadsheet-dropzone" id="spreadsheetDropzone">
@@ -508,6 +542,14 @@
 
         <input type="hidden" id="editingQuestionId" value="">
 
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+          <label style="font-size:0.85rem;font-weight:700;color:var(--gold-glow);white-space:nowrap;">📁 Save to Folder:</label>
+          <select id="builderFolderSelect" class="form-input" style="flex:1;min-width:180px;padding:6px 10px;font-size:0.85rem;background:#0d1836;border-color:var(--gold-border);">
+            <!-- Populated dynamically -->
+          </select>
+          <button type="button" id="builderNewFolderBtn" class="icon-btn" style="padding:6px 10px;font-size:0.8rem;">➕ New Folder</button>
+        </div>
+
         <div class="form-group">
           <label class="form-label">Question Prompt:</label>
           <input type="text" id="qPromptInput" class="form-input" placeholder="e.g. Name something people always forget to bring when leaving home...">
@@ -555,6 +597,15 @@
           </div>
         </div>
 
+        <!-- Target Folder Selector for AI Generator -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;background:rgba(0,0,0,0.3);border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.1);flex-wrap:wrap;">
+          <label style="font-size:0.85rem;font-weight:700;color:var(--gold-glow);white-space:nowrap;">📁 Add to Folder:</label>
+          <select id="aiTargetFolderSelect" class="form-input" style="flex:1;min-width:180px;padding:6px 10px;font-size:0.85rem;background:#0d1836;border-color:var(--gold-border);">
+            <!-- Populated dynamically -->
+          </select>
+          <button type="button" id="aiNewFolderBtn" class="icon-btn" style="padding:6px 10px;font-size:0.8rem;">➕ New Folder</button>
+        </div>
+
         <!-- Optional Gemini API Key configuration -->
         <div style="background:rgba(0,0,0,0.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:18px;">
           <details>
@@ -563,7 +614,7 @@
             </summary>
             <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
               <div style="font-size:0.8rem;color:var(--text-muted);">
-                By default, our built-in Smart PG Generator works instantly without an API key. To connect live Google Gemini AI, paste your free Gemini API key below:
+                By default, our built-in Smart PG Generator works instantly without an API key with rich variations. To connect live Google Gemini AI, paste your free Gemini API key below:
               </div>
               <div style="display:flex;gap:8px;">
                 <input type="password" id="geminiApiKeyInput" class="form-input" placeholder="AIzaSy... (Paste Gemini API key)" style="flex:1;font-size:0.85rem;">
@@ -581,17 +632,25 @@
 
         <div id="aiResultCard" style="display:none;background:#0d1836;border:1px solid rgba(246,185,59,0.4);border-radius:var(--radius-md);padding:18px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-            <span class="badge badge-gold" id="aiSourceBadge">Smart AI</span>
-            <span class="badge badge-green" id="aiPointsTotalBadge">Total: 100 Pts</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="badge badge-gold" id="aiSourceBadge">Smart AI</span>
+              <span class="badge badge-green" id="aiPointsTotalBadge">Total: 100 Pts</span>
+            </div>
+            <span style="font-size:0.78rem;color:var(--text-muted);">✏️ Click question or answers to edit directly</span>
           </div>
-          <h4 id="aiGeneratedQuestionText" style="font-family:var(--font-display);font-size:1.25rem;color:#fff;margin-bottom:14px;line-height:1.4;"></h4>
+
+          <div style="margin-bottom:14px;">
+            <label style="font-size:0.78rem;color:var(--gold-glow);font-weight:700;">Question Prompt:</label>
+            <input type="text" id="aiGeneratedQuestionInput" class="form-input" style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:#fff;margin-top:4px;">
+          </div>
           
+          <div style="margin-bottom:8px;font-size:0.78rem;color:var(--gold-glow);font-weight:700;">Ranked Answers (Editable):</div>
           <div class="answers-grid" id="aiGeneratedAnswersList" style="margin-bottom:16px;">
             <!-- Answers list -->
           </div>
 
           <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
-            <button type="button" id="aiRegenerateBtn" class="btn-secondary" style="font-size:0.88rem;padding:8px 16px;">🔄 Regenerate</button>
+            <button type="button" id="aiRegenerateBtn" class="btn-secondary" style="font-size:0.88rem;padding:8px 16px;">🔄 Regenerate Different Question</button>
             <button type="button" id="aiAddToBankBtn" class="btn-secondary" style="font-size:0.88rem;padding:8px 16px;">📋 Add to Bank</button>
             <button type="button" id="aiPlayNowBtn" class="btn-primary" style="font-size:0.88rem;padding:8px 18px;">⚡ Play Now on Board</button>
           </div>
@@ -600,6 +659,24 @@
 
       <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,0.1);padding-top:14px;display:flex;justify-content:flex-end;">
         <button class="btn-secondary close-modal-btn" style="padding:8px 24px;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New / Rename Folder Modal -->
+  <div class="modal-overlay" id="folderModal">
+    <div class="modal-card" style="max-width:380px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="folderModalTitle">📁 New Question Folder</h3>
+        <button class="close-modal-btn" id="closeFolderModalBtn">&times;</button>
+      </div>
+      <div class="form-group" style="margin-top:14px;">
+        <label class="form-label">Folder Name:</label>
+        <input type="text" id="folderNameInput" class="form-input" placeholder="e.g. Round 1 Specials, Kids Edition, Holiday...">
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+        <button type="button" class="btn-secondary" id="cancelFolderModalBtn" style="padding:8px 16px;">Cancel</button>
+        <button type="button" class="btn-primary" id="saveFolderModalBtn" style="padding:8px 20px;">Save Folder</button>
       </div>
     </div>
   </div>

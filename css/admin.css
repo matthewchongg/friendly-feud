@@ -457,6 +457,65 @@
   display: block;
 }
 
+/* Folder Navigation Pills */
+.folder-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.folder-pill:hover {
+  background: rgba(246, 185, 59, 0.15);
+  border-color: var(--gold-border);
+}
+
+.folder-pill.active {
+  background: var(--gold-primary);
+  border-color: var(--gold-border);
+  color: #071330;
+  box-shadow: 0 0 10px rgba(246, 185, 59, 0.5);
+}
+
+.folder-pill .folder-count {
+  font-size: 0.72rem;
+  opacity: 0.85;
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffeaa7;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.folder-pill.active .folder-count {
+  background: rgba(0, 0, 0, 0.25);
+  color: #071330;
+  font-weight: 800;
+}
+
+.move-folder-select {
+  background: #09173a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--gold-glow);
+  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.move-folder-select:focus {
+  border-color: var(--gold-border);
+  outline: none;
+}
+
 /* Question Bank Item Card */
 .q-bank-card {
   background: rgba(255, 255, 255, 0.05);

@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const nextQBtn = document.getElementById('nextQBtn');
   const manageQuestionsMainBtn = document.getElementById('manageQuestionsMainBtn');
   const adminQuestionText = document.getElementById('adminQuestionText');
+  const adminFolderFilterSelect = document.getElementById('adminFolderFilterSelect');
   const adminQuestionSelect = document.getElementById('adminQuestionSelect');
   const revealedPointsSummary = document.getElementById('revealedPointsSummary');
   const adminAnswersList = document.getElementById('adminAnswersList');
@@ -119,12 +120,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const importQInput = document.getElementById('importQInput');
   const resetDefaultQBtn = document.getElementById('resetDefaultQBtn');
 
+  // Folder Navigation Elements
+  const folderPillsContainer = document.getElementById('folderPillsContainer');
+  const activeFolderNameBadge = document.getElementById('activeFolderNameBadge');
+  const addNewFolderBtn = document.getElementById('addNewFolderBtn');
+  const renameCurrentFolderBtn = document.getElementById('renameCurrentFolderBtn');
+  const deleteCurrentFolderBtn = document.getElementById('deleteCurrentFolderBtn');
+
+  // Folder Modal Elements
+  const folderModal = document.getElementById('folderModal');
+  const folderModalTitle = document.getElementById('folderModalTitle');
+  const folderNameInput = document.getElementById('folderNameInput');
+  const saveFolderModalBtn = document.getElementById('saveFolderModalBtn');
+  const cancelFolderModalBtn = document.getElementById('cancelFolderModalBtn');
+  const closeFolderModalBtn = document.getElementById('closeFolderModalBtn');
+
   // Spreadsheet upload elements
+  const spreadsheetFolderSelect = document.getElementById('spreadsheetFolderSelect');
   const spreadsheetDropzone = document.getElementById('spreadsheetDropzone');
   const spreadsheetFileInput = document.getElementById('spreadsheetFileInput');
   const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
 
   // Question Builder Form elements
+  const builderFolderSelect = document.getElementById('builderFolderSelect');
+  const builderNewFolderBtn = document.getElementById('builderNewFolderBtn');
   const builderModeTitle = document.getElementById('builderModeTitle');
   const builderPointsSumBadge = document.getElementById('builderPointsSumBadge');
   const editingQuestionIdInput = document.getElementById('editingQuestionId');
@@ -133,6 +152,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBuilderRowsBtn = document.getElementById('clearBuilderRowsBtn');
   const saveCustomQBtn = document.getElementById('saveCustomQBtn');
   const cancelEditQBtn = document.getElementById('cancelEditQBtn');
+
+  // AI Generator Elements
+  const aiTargetFolderSelect = document.getElementById('aiTargetFolderSelect');
+  const aiNewFolderBtn = document.getElementById('aiNewFolderBtn');
+  const aiGeneratedQuestionInput = document.getElementById('aiGeneratedQuestionInput');
 
   // Sound FX buttons
   const sfxDingBtn = document.getElementById('sfxDing');
@@ -147,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initRoom();
   buildAnswersInputForm();
   renderDynamicRoundsBar();
+  populateFolderDropdowns();
   populateQuestionDropdown();
 
   // If question was not set or invalid, load default
@@ -388,24 +413,155 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handlePlayerDisconnect(payload) {}
 
-  // --- Active Question Navigation & Management ---
+  // --- Question Folders & Active Question Management ---
+  let activeFolderFilter = 'all';
+  let editingFolderId = null;
+
+  function populateFolderDropdowns() {
+    const folders = qManager.getFolders();
+
+    // 1. Admin main Quick Switch folder filter
+    if (adminFolderFilterSelect) {
+      const currentVal = adminFolderFilterSelect.value || 'all';
+      adminFolderFilterSelect.innerHTML = `<option value="all">📁 All Folders (${qManager.getAll().length})</option>`;
+      folders.forEach(f => {
+        const count = qManager.getByFolder(f.id).length;
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = `${f.icon || '📁'} ${f.name} (${count})`;
+        adminFolderFilterSelect.appendChild(opt);
+      });
+      if (folders.some(f => f.id === currentVal) || currentVal === 'all') {
+        adminFolderFilterSelect.value = currentVal;
+      }
+    }
+
+    // 2. Spreadsheet upload folder select
+    if (spreadsheetFolderSelect) {
+      const currentVal = spreadsheetFolderSelect.value || 'default';
+      spreadsheetFolderSelect.innerHTML = '';
+      folders.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = `${f.icon || '📁'} ${f.name}`;
+        spreadsheetFolderSelect.appendChild(opt);
+      });
+      spreadsheetFolderSelect.value = currentVal;
+    }
+
+    // 3. Builder folder select
+    if (builderFolderSelect) {
+      const currentVal = builderFolderSelect.value || 'default';
+      builderFolderSelect.innerHTML = '';
+      folders.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = `${f.icon || '📁'} ${f.name}`;
+        builderFolderSelect.appendChild(opt);
+      });
+      builderFolderSelect.value = currentVal;
+    }
+
+    // 4. AI target folder select
+    if (aiTargetFolderSelect) {
+      const currentVal = aiTargetFolderSelect.value || 'default';
+      aiTargetFolderSelect.innerHTML = '';
+      folders.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = `${f.icon || '📁'} ${f.name}`;
+        aiTargetFolderSelect.appendChild(opt);
+      });
+      aiTargetFolderSelect.value = currentVal;
+    }
+
+    renderFolderPills();
+  }
+
+  function renderFolderPills() {
+    if (!folderPillsContainer) return;
+    folderPillsContainer.innerHTML = '';
+    const folders = qManager.getFolders();
+    const allCount = qManager.getAll().length;
+
+    // "All Folders" pill
+    const allPill = document.createElement('div');
+    allPill.className = `folder-pill ${activeFolderFilter === 'all' ? 'active' : ''}`;
+    allPill.innerHTML = `<span>📁 All</span> <span class="folder-count">${allCount}</span>`;
+    allPill.addEventListener('click', () => {
+      activeFolderFilter = 'all';
+      renderFolderPills();
+      renderQuestionsManagerList(qSearchInput ? qSearchInput.value : '');
+    });
+    folderPillsContainer.appendChild(allPill);
+
+    // Individual folder pills
+    folders.forEach(f => {
+      const count = qManager.getByFolder(f.id).length;
+      const pill = document.createElement('div');
+      pill.className = `folder-pill ${activeFolderFilter === f.id ? 'active' : ''}`;
+      pill.innerHTML = `<span>${f.icon || '📁'} ${f.name}</span> <span class="folder-count">${count}</span>`;
+      pill.addEventListener('click', () => {
+        activeFolderFilter = f.id;
+        renderFolderPills();
+        renderQuestionsManagerList(qSearchInput ? qSearchInput.value : '');
+      });
+      folderPillsContainer.appendChild(pill);
+    });
+
+    // Update active badge and visibility of rename/delete
+    if (activeFolderNameBadge) {
+      if (activeFolderFilter === 'all') {
+        activeFolderNameBadge.textContent = 'All Questions';
+      } else {
+        const curr = qManager.getFolderById(activeFolderFilter);
+        activeFolderNameBadge.textContent = curr ? curr.name : 'Folder';
+      }
+    }
+
+    const isCustom = activeFolderFilter !== 'all' && activeFolderFilter !== 'default';
+    if (renameCurrentFolderBtn) renameCurrentFolderBtn.style.display = isCustom ? 'inline-block' : 'none';
+    if (deleteCurrentFolderBtn) deleteCurrentFolderBtn.style.display = isCustom ? 'inline-block' : 'none';
+  }
+
   function populateQuestionDropdown() {
     if (!adminQuestionSelect) return;
     adminQuestionSelect.innerHTML = '';
-    const all = qManager.getAll();
 
-    all.forEach((q, idx) => {
-      const opt = document.createElement('option');
-      opt.value = q.id;
-      opt.textContent = `${idx + 1}. ${q.question}`;
-      adminQuestionSelect.appendChild(opt);
-    });
+    const selectedFolder = adminFolderFilterSelect ? adminFolderFilterSelect.value : 'all';
+
+    if (selectedFolder === 'all') {
+      // Group by folders using optgroups
+      const folders = qManager.getFolders();
+      folders.forEach(f => {
+        const fldQuestions = qManager.getByFolder(f.id);
+        if (fldQuestions.length > 0) {
+          const group = document.createElement('optgroup');
+          group.label = `${f.icon || '📁'} ${f.name} (${fldQuestions.length})`;
+          fldQuestions.forEach((q, idx) => {
+            const opt = document.createElement('option');
+            opt.value = q.id;
+            opt.textContent = `${idx + 1}. ${q.question}`;
+            group.appendChild(opt);
+          });
+          adminQuestionSelect.appendChild(group);
+        }
+      });
+    } else {
+      const questionsToShow = qManager.getByFolder(selectedFolder);
+      questionsToShow.forEach((q, idx) => {
+        const opt = document.createElement('option');
+        opt.value = q.id;
+        opt.textContent = `${idx + 1}. ${q.question}`;
+        adminQuestionSelect.appendChild(opt);
+      });
+    }
 
     if (state.currentQuestion) {
       adminQuestionSelect.value = state.currentQuestion.id;
     }
 
-    const totalCount = all.length;
+    const totalCount = qManager.getAll().length;
     if (totalQuestionsCountBadge) totalQuestionsCountBadge.textContent = `${totalCount} Loaded`;
     if (tabBankCount) tabBankCount.textContent = totalCount;
   }
@@ -421,8 +577,26 @@ document.addEventListener('DOMContentLoaded', () => {
         revealed: false
       }))
     };
+    if (adminQuestionSelect) {
+      adminQuestionSelect.value = q.id;
+    }
     broadcastState();
     renderUI();
+  }
+
+  if (adminFolderFilterSelect) {
+    adminFolderFilterSelect.addEventListener('change', () => {
+      populateQuestionDropdown();
+      const selectedFolder = adminFolderFilterSelect.value;
+      const list = qManager.getByFolder(selectedFolder);
+      if (list && list.length > 0) {
+        // If current question is not in this folder, switch to first question of folder
+        const exists = list.some(q => state.currentQuestion && q.id === state.currentQuestion.id);
+        if (!exists) {
+          loadQuestion(list[0]);
+        }
+      }
+    });
   }
 
   if (adminQuestionSelect) {
@@ -434,21 +608,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (prevQBtn) {
     prevQBtn.addEventListener('click', () => {
-      const all = qManager.getAll();
-      if (!all || all.length === 0) return;
-      const currentIdx = state.currentQuestion ? all.findIndex(q => q.id === state.currentQuestion.id) : 0;
-      const prevIdx = currentIdx <= 0 ? all.length - 1 : currentIdx - 1;
-      loadQuestion(all[prevIdx]);
+      const selectedFolder = adminFolderFilterSelect ? adminFolderFilterSelect.value : 'all';
+      const list = qManager.getByFolder(selectedFolder);
+      if (!list || list.length === 0) return;
+      const currentIdx = state.currentQuestion ? list.findIndex(q => q.id === state.currentQuestion.id) : 0;
+      const prevIdx = currentIdx <= 0 ? list.length - 1 : currentIdx - 1;
+      loadQuestion(list[prevIdx]);
     });
   }
 
   if (nextQBtn) {
     nextQBtn.addEventListener('click', () => {
-      const all = qManager.getAll();
-      if (!all || all.length === 0) return;
-      const currentIdx = state.currentQuestion ? all.findIndex(q => q.id === state.currentQuestion.id) : 0;
-      const nextIdx = (currentIdx + 1) % all.length;
-      loadQuestion(all[nextIdx]);
+      const selectedFolder = adminFolderFilterSelect ? adminFolderFilterSelect.value : 'all';
+      const list = qManager.getByFolder(selectedFolder);
+      if (!list || list.length === 0) return;
+      const currentIdx = state.currentQuestion ? list.findIndex(q => q.id === state.currentQuestion.id) : 0;
+      const nextIdx = (currentIdx + 1) % list.length;
+      loadQuestion(list[nextIdx]);
     });
   }
 
@@ -1222,9 +1398,11 @@ document.addEventListener('DOMContentLoaded', () => {
           const worksheet = workbook.Sheets[firstSheetName];
           const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-          const result = qManager.importFromSpreadsheetData(jsonRows);
+          const targetFld = spreadsheetFolderSelect ? spreadsheetFolderSelect.value : 'default';
+          const result = qManager.importFromSpreadsheetData(jsonRows, targetFld);
           if (result.success) {
-            alert(`Successfully imported ${result.count} questions from Excel!`);
+            alert(`Successfully imported ${result.count} questions from Excel into "${qManager.getFolderById(targetFld).name}"!`);
+            populateFolderDropdowns();
             renderQuestionsManagerList();
             populateQuestionDropdown();
             loadQuestion(qManager.getAll()[0]);
@@ -1243,9 +1421,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           const text = e.target.result;
           const rows = qManager.parseCSV(text);
-          const result = qManager.importFromSpreadsheetData(rows);
+          const targetFld = spreadsheetFolderSelect ? spreadsheetFolderSelect.value : 'default';
+          const result = qManager.importFromSpreadsheetData(rows, targetFld);
           if (result.success) {
-            alert(`Successfully imported ${result.count} questions from CSV!`);
+            alert(`Successfully imported ${result.count} questions from CSV into "${qManager.getFolderById(targetFld).name}"!`);
+            populateFolderDropdowns();
             renderQuestionsManagerList();
             populateQuestionDropdown();
             loadQuestion(qManager.getAll()[0]);
@@ -1290,48 +1470,63 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- Tab 1: Render Question Bank List with Search ---
+  // --- Tab 1: Render Question Bank List with Search & Folder Filtering ---
   function renderQuestionsManagerList(searchQuery = '') {
     if (!customQListEl) return;
     customQListEl.innerHTML = '';
-    const all = qManager.getAll();
+    const list = qManager.getByFolder(activeFolderFilter);
     const query = searchQuery.trim().toLowerCase();
 
     const filtered = query
-      ? all.filter(q => q.question.toLowerCase().includes(query) || q.answers.some(a => a.text.toLowerCase().includes(query)))
-      : all;
+      ? list.filter(q => q.question.toLowerCase().includes(query) || q.answers.some(a => a.text.toLowerCase().includes(query)))
+      : list;
 
-    if (tabBankCount) tabBankCount.textContent = all.length;
-    if (totalQuestionsCountBadge) totalQuestionsCountBadge.textContent = `${all.length} Loaded`;
+    const totalCount = qManager.getAll().length;
+    if (tabBankCount) tabBankCount.textContent = totalCount;
+    if (totalQuestionsCountBadge) totalQuestionsCountBadge.textContent = `${totalCount} Loaded`;
 
     if (filtered.length === 0) {
-      customQListEl.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-muted);">No questions found matching "${searchQuery}".</div>`;
+      customQListEl.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-muted);">No questions found in this folder${query ? ` matching "${searchQuery}"` : ''}.</div>`;
       return;
     }
+
+    const allFolders = qManager.getFolders();
 
     filtered.forEach((q, idx) => {
       const card = document.createElement('div');
       card.className = 'q-bank-card';
       const totalPts = q.answers.reduce((acc, a) => acc + (a.points || 0), 0);
       const isCurrent = state.currentQuestion && state.currentQuestion.id === q.id;
+      const currentFolder = qManager.getFolderById(q.folderId || 'default');
 
       // Generate answer pills preview
       const pillsHtml = q.answers.map((a, i) => `
         <span class="q-ans-pill">#${i + 1} ${a.text} (${a.points})</span>
       `).join('');
 
+      // Build folder options for Move dropdown
+      const folderOptionsHtml = allFolders.map(f => `
+        <option value="${f.id}" ${(q.folderId || 'default') === f.id ? 'selected' : ''}>${f.icon || '📁'} ${f.name}</option>
+      `).join('');
+
       card.innerHTML = `
         <div class="q-bank-header">
           <div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
               <span class="badge ${isCurrent ? 'badge-green' : 'badge-gold'}" style="font-size:0.75rem;">
                 ${isCurrent ? 'ACTIVE ON BOARD' : `Question #${idx + 1}`}
+              </span>
+              <span class="badge badge-blue" style="font-size:0.75rem;background:rgba(52,152,219,0.25);border-color:#3498db;color:#74b9ff;">
+                📁 ${currentFolder.name}
               </span>
               <span style="font-size:0.8rem;color:var(--text-muted);font-weight:700;">${q.answers.length} Answers · ${totalPts} Total Pts</span>
             </div>
             <div class="q-bank-prompt">${q.question}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
+          <div style="display:flex;gap:6px;flex-shrink:0;align-items:center;flex-wrap:wrap;">
+            <select class="move-folder-select" title="Move to another folder">
+              ${folderOptionsHtml}
+            </select>
             <button class="btn-primary load-q-btn" style="padding:5px 12px;font-size:0.8rem;">
               ▶ Load
             </button>
@@ -1348,6 +1543,16 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
+      // Handle folder move
+      const moveSelect = card.querySelector('.move-folder-select');
+      moveSelect.addEventListener('change', (e) => {
+        const targetFld = e.target.value;
+        qManager.moveQuestionToFolder(q.id, targetFld);
+        populateFolderDropdowns();
+        populateQuestionDropdown();
+        renderQuestionsManagerList(qSearchInput ? qSearchInput.value : '');
+      });
+
       card.querySelector('.load-q-btn').addEventListener('click', () => {
         loadQuestion(q);
         if (questionsModalEl) questionsModalEl.classList.remove('active');
@@ -1360,8 +1565,9 @@ document.addEventListener('DOMContentLoaded', () => {
       card.querySelector('.del-q-btn').addEventListener('click', () => {
         if (confirm(`Delete question "${q.question}"?`)) {
           qManager.deleteQuestion(q.id);
-          renderQuestionsManagerList(qSearchInput ? qSearchInput.value : '');
+          populateFolderDropdowns();
           populateQuestionDropdown();
+          renderQuestionsManagerList(qSearchInput ? qSearchInput.value : '');
         }
       });
 
@@ -1421,6 +1627,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saveCustomQBtn) saveCustomQBtn.textContent = '💾 Save Question to Bank';
     if (cancelEditQBtn) cancelEditQBtn.style.display = 'none';
 
+    if (builderFolderSelect) {
+      builderFolderSelect.value = (activeFolderFilter && activeFolderFilter !== 'all') ? activeFolderFilter : 'default';
+    }
+
     if (answersBuilderDiv) {
       answersBuilderDiv.querySelectorAll('.q-ans-text').forEach(i => i.value = '');
       answersBuilderDiv.querySelectorAll('.q-ans-pts').forEach(i => i.value = '');
@@ -1445,6 +1655,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (builderModeTitle) builderModeTitle.textContent = `✏️ Edit Question`;
     if (saveCustomQBtn) saveCustomQBtn.textContent = '💾 Update Question in Bank';
     if (cancelEditQBtn) cancelEditQBtn.style.display = 'block';
+
+    if (builderFolderSelect) {
+      builderFolderSelect.value = q.folderId || 'default';
+    }
 
     const textInputs = answersBuilderDiv.querySelectorAll('.q-ans-text');
     const ptsInputs = answersBuilderDiv.querySelectorAll('.q-ans-pts');
@@ -1492,20 +1706,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      const targetFolder = builderFolderSelect ? builderFolderSelect.value : 'default';
       const editingId = editingQuestionIdInput ? editingQuestionIdInput.value : '';
       let savedQ;
 
       if (editingId) {
         // Update existing question
-        savedQ = qManager.updateQuestion(editingId, prompt, answers);
+        savedQ = qManager.updateQuestion(editingId, prompt, answers, targetFolder);
         alert('Question updated successfully!');
       } else {
         // Create new question
-        savedQ = qManager.addQuestion(prompt, answers);
+        savedQ = qManager.addQuestion(prompt, answers, targetFolder);
         alert('Question saved to bank successfully!');
       }
 
       resetBuilderForm();
+      populateFolderDropdowns();
       renderQuestionsManagerList();
       populateQuestionDropdown();
 
@@ -1541,6 +1757,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = qManager.importFromJSON(evt.target.result);
         if (res.success) {
           alert(`Successfully imported ${res.count} questions from JSON!`);
+          populateFolderDropdowns();
           renderQuestionsManagerList();
           populateQuestionDropdown();
           loadQuestion(qManager.getAll()[0]);
@@ -1556,6 +1773,8 @@ document.addEventListener('DOMContentLoaded', () => {
     resetDefaultQBtn.addEventListener('click', () => {
       if (confirm('Reset question bank to default questions?')) {
         qManager.resetToDefaults();
+        activeFolderFilter = 'default';
+        populateFolderDropdowns();
         renderQuestionsManagerList();
         populateQuestionDropdown();
         loadQuestion(qManager.getAll()[0]);
@@ -1711,7 +1930,7 @@ document.addEventListener('DOMContentLoaded', () => {
   checkInitialPasswordPrompt();
 
   // ==========================================
-  // AI QUESTION GENERATOR (PG GUARDRAILS)
+  // AI QUESTION GENERATOR (PG GUARDRAILS & FOLDERS)
   // ==========================================
   const aiTopicInput = document.getElementById('aiTopicInput');
   const aiGenerateBtn = document.getElementById('aiGenerateBtn');
@@ -1721,7 +1940,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const aiResultCard = document.getElementById('aiResultCard');
   const aiSourceBadge = document.getElementById('aiSourceBadge');
   const aiPointsTotalBadge = document.getElementById('aiPointsTotalBadge');
-  const aiGeneratedQuestionText = document.getElementById('aiGeneratedQuestionText');
   const aiGeneratedAnswersList = document.getElementById('aiGeneratedAnswersList');
   const aiRegenerateBtn = document.getElementById('aiRegenerateBtn');
   const aiAddToBankBtn = document.getElementById('aiAddToBankBtn');
@@ -1769,19 +1987,36 @@ document.addEventListener('DOMContentLoaded', () => {
       const totalPts = res.question.answers.reduce((sum, a) => sum + (a.points || 0), 0);
       if (aiPointsTotalBadge) aiPointsTotalBadge.textContent = `Total: ${totalPts} Pts`;
 
-      if (aiGeneratedQuestionText) aiGeneratedQuestionText.textContent = res.question.question;
+      if (aiGeneratedQuestionInput) {
+        aiGeneratedQuestionInput.value = res.question.question;
+      }
+
       if (aiGeneratedAnswersList) {
         aiGeneratedAnswersList.innerHTML = '';
         res.question.answers.forEach((ans, idx) => {
           const item = document.createElement('div');
           item.className = 'answer-card-preview';
           item.style.display = 'flex';
-          item.style.justifyContent = 'space-between';
+          item.style.alignItems = 'center';
+          item.style.gap = '8px';
           item.style.background = 'rgba(255,255,255,0.06)';
           item.style.padding = '8px 12px';
           item.style.borderRadius = '6px';
           item.style.marginBottom = '6px';
-          item.innerHTML = `<span><strong>${idx + 1}.</strong> ${ans.text}</span> <span style="color:var(--gold-primary);font-weight:800;">${ans.points} pts</span>`;
+          item.innerHTML = `
+            <span style="font-weight:800;color:var(--gold-glow);width:24px;">#${idx + 1}</span>
+            <input type="text" class="form-input ai-ans-text" value="${ans.text}" style="flex:1;padding:5px 8px;font-size:0.85rem;">
+            <input type="number" class="form-input ai-ans-pts" value="${ans.points}" style="width:65px;padding:5px 8px;font-size:0.85rem;text-align:center;">
+          `;
+
+          const ptsInp = item.querySelector('.ai-ans-pts');
+          ptsInp.addEventListener('input', () => {
+            const allPts = aiGeneratedAnswersList.querySelectorAll('.ai-ans-pts');
+            let sum = 0;
+            allPts.forEach(p => sum += parseInt(p.value, 10) || 0);
+            if (aiPointsTotalBadge) aiPointsTotalBadge.textContent = `Total: ${sum} Pts`;
+          });
+
           aiGeneratedAnswersList.appendChild(item);
         });
       }
@@ -1791,6 +2026,26 @@ document.addEventListener('DOMContentLoaded', () => {
         aiStatusArea.innerHTML = `<span style="color:#ff7675;">${err.message}</span>`;
       }
     }
+  }
+
+  function getAiQuestionFromInputs() {
+    if (!latestAiQuestion) return null;
+    const qText = aiGeneratedQuestionInput ? aiGeneratedQuestionInput.value.trim() : latestAiQuestion.question;
+    const answers = [];
+    if (aiGeneratedAnswersList) {
+      const textInps = aiGeneratedAnswersList.querySelectorAll('.ai-ans-text');
+      const ptsInps = aiGeneratedAnswersList.querySelectorAll('.ai-ans-pts');
+      for (let i = 0; i < textInps.length; i++) {
+        const t = textInps[i].value.trim();
+        const p = parseInt(ptsInps[i].value, 10) || 0;
+        if (t) answers.push({ text: t, points: p });
+      }
+    }
+    return {
+      id: latestAiQuestion.id || ('ai-' + Date.now()),
+      question: qText || latestAiQuestion.question,
+      answers: answers.length > 0 ? answers : latestAiQuestion.answers
+    };
   }
 
   if (aiGenerateBtn) aiGenerateBtn.addEventListener('click', handleAiGenerate);
@@ -1803,8 +2058,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (aiAddToBankBtn) {
     aiAddToBankBtn.addEventListener('click', () => {
-      if (!latestAiQuestion) return;
-      qManager.add(latestAiQuestion);
+      const q = getAiQuestionFromInputs();
+      if (!q) return;
+      const targetFolder = aiTargetFolderSelect ? aiTargetFolderSelect.value : 'default';
+      qManager.add(q, targetFolder);
+      populateFolderDropdowns();
       populateQuestionDropdown();
       renderQuestionsManagerList();
       aiAddToBankBtn.textContent = '✅ Added to Bank!';
@@ -1814,12 +2072,96 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (aiPlayNowBtn) {
     aiPlayNowBtn.addEventListener('click', () => {
-      if (!latestAiQuestion) return;
-      qManager.add(latestAiQuestion);
+      const q = getAiQuestionFromInputs();
+      if (!q) return;
+      const targetFolder = aiTargetFolderSelect ? aiTargetFolderSelect.value : 'default';
+      const added = qManager.add(q, targetFolder);
+      populateFolderDropdowns();
       populateQuestionDropdown();
       renderQuestionsManagerList();
-      loadQuestion(latestAiQuestion);
+      loadQuestion(added || q);
       document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    });
+  }
+
+  // ==========================================
+  // FOLDER CREATION & RENAME MODAL WIRING
+  // ==========================================
+  function openFolderModal(mode = 'create', folderId = null) {
+    editingFolderId = folderId;
+    if (mode === 'rename' && folderId) {
+      const f = qManager.getFolderById(folderId);
+      if (folderModalTitle) folderModalTitle.textContent = '✏️ Rename Question Folder';
+      if (folderNameInput) folderNameInput.value = f ? f.name : '';
+    } else {
+      if (folderModalTitle) folderModalTitle.textContent = '📁 New Question Folder';
+      if (folderNameInput) folderNameInput.value = '';
+    }
+    if (folderModal) folderModal.classList.add('active');
+    if (folderNameInput) folderNameInput.focus();
+  }
+
+  function closeFolderModal() {
+    if (folderModal) folderModal.classList.remove('active');
+    editingFolderId = null;
+  }
+
+  if (addNewFolderBtn) addNewFolderBtn.addEventListener('click', () => openFolderModal('create'));
+  if (builderNewFolderBtn) builderNewFolderBtn.addEventListener('click', () => openFolderModal('create'));
+  if (aiNewFolderBtn) aiNewFolderBtn.addEventListener('click', () => openFolderModal('create'));
+
+  if (renameCurrentFolderBtn) {
+    renameCurrentFolderBtn.addEventListener('click', () => {
+      if (activeFolderFilter === 'all' || activeFolderFilter === 'default') return;
+      openFolderModal('rename', activeFolderFilter);
+    });
+  }
+
+  if (deleteCurrentFolderBtn) {
+    deleteCurrentFolderBtn.addEventListener('click', () => {
+      if (activeFolderFilter === 'all' || activeFolderFilter === 'default') return;
+      const f = qManager.getFolderById(activeFolderFilter);
+      const name = f ? f.name : 'this folder';
+      if (confirm(`Delete folder "${name}"? All questions in this folder will be moved to the Default folder.`)) {
+        qManager.deleteFolder(activeFolderFilter);
+        activeFolderFilter = 'default';
+        populateFolderDropdowns();
+        populateQuestionDropdown();
+        renderQuestionsManagerList();
+      }
+    });
+  }
+
+  if (cancelFolderModalBtn) cancelFolderModalBtn.addEventListener('click', closeFolderModal);
+  if (closeFolderModalBtn) closeFolderModalBtn.addEventListener('click', closeFolderModal);
+
+  if (saveFolderModalBtn) {
+    saveFolderModalBtn.addEventListener('click', () => {
+      const name = folderNameInput ? folderNameInput.value.trim() : '';
+      if (!name) {
+        alert('Please enter a folder name.');
+        return;
+      }
+      try {
+        if (editingFolderId) {
+          qManager.renameFolder(editingFolderId, name);
+        } else {
+          const newFld = qManager.createFolder(name);
+          activeFolderFilter = newFld.id;
+        }
+        closeFolderModal();
+        populateFolderDropdowns();
+        populateQuestionDropdown();
+        renderQuestionsManagerList();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+  }
+
+  if (folderNameInput) {
+    folderNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveFolderModalBtn.click();
     });
   }
 });
