@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let state = window.gameState.get();
   let timerInterval = null;
+  let activeFolderFilter = 'all';
+  let editingFolderId = null;
 
   // DOM Elements - Navigation & Room
   const roomCodeInput = document.getElementById('roomCodeInput');
@@ -414,9 +416,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function handlePlayerDisconnect(payload) {}
 
   // --- Question Folders & Active Question Management ---
-  let activeFolderFilter = 'all';
-  let editingFolderId = null;
-
   function populateFolderDropdowns() {
     const folders = qManager.getFolders();
 
@@ -1809,15 +1808,26 @@ document.addEventListener('DOMContentLoaded', () => {
     return localStorage.getItem('feud_admin_password') || 'feudadmin';
   }
 
-  // Host opening admin screen is authenticated by default - never locked out on initial access!
-  sessionStorage.setItem('feud_admin_auth', 'true');
-  if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
-
-  // Immediately ask host to configure password on first access (use default or custom)
+  // Check password authentication & setup status
   function checkInitialPasswordPrompt() {
     const isSetupDone = localStorage.getItem('feud_admin_password_setup_done') === 'true';
-    if (!isSetupDone && initialPasswordModal) {
-      initialPasswordModal.classList.add('active');
+    const isAuthenticated = sessionStorage.getItem('feud_admin_auth') === 'true';
+
+    if (!isSetupDone) {
+      // First access: prompt host to configure password immediately (use default or custom)
+      if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
+      if (initialPasswordModal) initialPasswordModal.classList.add('active');
+    } else if (!isAuthenticated) {
+      // Setup already completed, but this session is locked: prompt passkey overlay
+      if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
+      if (initialPasswordModal) initialPasswordModal.classList.remove('active');
+      if (adminPasswordAuthInput) {
+        setTimeout(() => adminPasswordAuthInput.focus(), 100);
+      }
+    } else {
+      // Authenticated in current session
+      if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
+      if (initialPasswordModal) initialPasswordModal.classList.remove('active');
     }
   }
 
@@ -1825,6 +1835,7 @@ document.addEventListener('DOMContentLoaded', () => {
     useDefaultPasswordBtn.addEventListener('click', () => {
       localStorage.setItem('feud_admin_password', 'feudadmin');
       localStorage.setItem('feud_admin_password_setup_done', 'true');
+      sessionStorage.setItem('feud_admin_auth', 'true');
       if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = 'feudadmin';
       if (initialPasswordModal) initialPasswordModal.classList.remove('active');
     });
@@ -1841,6 +1852,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (initialPassErrorMsg) initialPassErrorMsg.style.display = 'none';
       localStorage.setItem('feud_admin_password', pass);
       localStorage.setItem('feud_admin_password_setup_done', 'true');
+      sessionStorage.setItem('feud_admin_auth', 'true');
       if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = pass;
       if (initialPasswordModal) initialPasswordModal.classList.remove('active');
     };
@@ -1854,6 +1866,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (skipPasswordSetupBtn) {
     skipPasswordSetupBtn.addEventListener('click', () => {
       localStorage.setItem('feud_admin_password_setup_done', 'true');
+      sessionStorage.setItem('feud_admin_auth', 'true');
       if (initialPasswordModal) initialPasswordModal.classList.remove('active');
     });
   }
