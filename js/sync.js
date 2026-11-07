@@ -111,6 +111,15 @@ class SyncEngine {
     ];
   }
 
+  generateRoomCode() {
+    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'FF-';
+    for (let i = 0; i < 4; i++) {
+      code += letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+    return code;
+  }
+
   // ==========================================
   // HOST PEER (Admin Screen ONLY)
   // Registers feud-room-[CODE] on PeerJS Cloud
@@ -118,7 +127,11 @@ class SyncEngine {
   initHostPeer(roomCode, onStatusChange) {
     this.role = 'host';
     this.statusCallback = onStatusChange;
-    this.roomCode = (roomCode || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    let cleanCode = (roomCode || '').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    if (!cleanCode || cleanCode === 'FEUD') {
+      cleanCode = this.generateRoomCode();
+    }
+    this.roomCode = cleanCode;
     const peerId = 'feud-room-' + this.roomCode;
 
     if (typeof Peer === 'undefined') {
@@ -163,22 +176,21 @@ class SyncEngine {
       this.peer.on('error', (err) => {
         console.warn('[Host] PeerJS notice:', err);
         if (err.type === 'unavailable-id') {
-          // The ID is still occupied on the signaling server (e.g. recent refresh or duplicate tab)
+          // The ID is occupied on the signaling server: generate fresh code to guarantee unused
           this.isOnline = false;
+          const freshCode = this.generateRoomCode();
+          console.warn(`[Host] Room "${this.roomCode}" is in use. Auto-switching to fresh unused code "${freshCode}"...`);
+          this.roomCode = freshCode;
           if (this.statusCallback) {
             this.statusCallback({
-              status: 'id-taken',
+              status: 'code-collision',
               roomCode: this.roomCode,
-              message: `Room "${this.roomCode}" is currently busy or releasing. Waiting to reconnect...`
+              message: `Room was in use. Auto-switching to unused code "${this.roomCode}"...`
             });
           }
-          if (this.retryAttempts < 5) {
-            this.retryAttempts++;
-            this.reconnectTimer = setTimeout(() => {
-              console.log(`[Host] Retrying host room registration (Attempt ${this.retryAttempts})...`);
-              this.initHostPeer(this.roomCode, this.statusCallback);
-            }, 3000);
-          }
+          this.reconnectTimer = setTimeout(() => {
+            this.initHostPeer(this.roomCode, this.statusCallback);
+          }, 350);
         } else {
           if (this.statusCallback) {
             this.statusCallback({ status: 'error', errorType: err.type, message: err.message || err.type });

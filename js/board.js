@@ -55,19 +55,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Parse room code from query params if given
   const urlParams = new URLSearchParams(window.location.search);
-  const roomParam = (urlParams.get('room') || state.roomCode || 'FEUD').toUpperCase().trim();
-  if (roomBadgeEl) roomBadgeEl.textContent = `ROOM: ${roomParam}`;
+  const roomParam = (urlParams.get('room') || state.roomCode || '').toUpperCase().trim();
+  if (roomBadgeEl) roomBadgeEl.textContent = roomParam ? `ROOM: ${roomParam}` : 'ROOM: WAITING...';
 
   // Start Sync Engine as VIEWER (Board connects to Host without fighting for host ID)
-  sync.initViewerPeer(roomParam, (status) => {
-    console.log('[Board] Sync status:', status);
-    if (status.status === 'connected') {
-      if (roomBadgeEl) {
-        roomBadgeEl.className = 'badge badge-green';
-        roomBadgeEl.textContent = `ROOM: ${roomParam} (LIVE)`;
+  if (roomParam) {
+    sync.initViewerPeer(roomParam, (status) => {
+      console.log('[Board] Sync status:', status);
+      if (status.status === 'connected') {
+        if (roomBadgeEl) {
+          roomBadgeEl.className = 'badge badge-green';
+          roomBadgeEl.textContent = `ROOM: ${roomParam} (LIVE)`;
+        }
       }
-    }
-  });
+    });
+  }
 
   // Listen to sync messages from Admin or Local Broadcast
   sync.onMessage((msg) => {
@@ -76,6 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
         state = msg.payload;
         window.gameState.update(state);
         renderState(state);
+        if (state.roomCode && roomBadgeEl) {
+          roomBadgeEl.textContent = `ROOM: ${state.roomCode}${sync.isOnline ? ' (LIVE)' : ''}`;
+        }
         break;
 
       case 'PLAY_SOUND':
@@ -300,7 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
     boardQrBtn.addEventListener('click', () => {
       try {
         const buzzerUrl = new URL('buzzer.html', window.location.href);
-        buzzerUrl.searchParams.set('room', roomParam);
+        const curRoom = state.roomCode || roomParam;
+        buzzerUrl.searchParams.set('room', curRoom);
         const finalUrl = buzzerUrl.href;
 
         if (boardQrUrl) boardQrUrl.textContent = finalUrl;

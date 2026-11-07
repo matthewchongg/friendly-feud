@@ -45,10 +45,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Check URL query parameters for room code
   const urlParams = new URLSearchParams(window.location.search);
-  const initialRoom = (urlParams.get('room') || 'FEUD').toUpperCase().trim();
+  const initialRoom = (urlParams.get('room') || '').toUpperCase().trim();
   activeRoom = initialRoom;
-  if (roomCodeInput) roomCodeInput.value = initialRoom;
-  if (buzzerRoomCodeTag) buzzerRoomCodeTag.textContent = initialRoom;
+  if (roomCodeInput) {
+    roomCodeInput.value = initialRoom;
+    if (!initialRoom) roomCodeInput.placeholder = 'ROOM CODE (e.g. FF-4K9A)';
+  }
+  if (buzzerRoomCodeTag) buzzerRoomCodeTag.textContent = initialRoom || 'ROOM';
 
   // Check saved player info from localStorage
   const savedPlayer = localStorage.getItem('feud_player_profile');
@@ -95,7 +98,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerNameInput) playerNameInput.focus();
         return;
       }
-      activeRoom = ((roomCodeInput ? roomCodeInput.value : '') || 'FEUD').toUpperCase().trim();
+      activeRoom = ((roomCodeInput ? roomCodeInput.value : '') || '').toUpperCase().trim();
+      if (!activeRoom) {
+        alert('Please enter the Game Room Code displayed on the host or board screen!');
+        if (roomCodeInput) roomCodeInput.focus();
+        return;
+      }
 
       let pid = localStorage.getItem('feud_player_id');
       if (!pid) {
@@ -205,6 +213,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // Listen to State Updates & Buzz results
   sync.onMessage((msg) => {
     switch (msg.type) {
+      case 'PLAYER_TEAM_CHANGED':
+        if (playerInfo && msg.payload && msg.payload.playerId === playerInfo.playerId) {
+          console.log(`[Buzzer] Host switched team: Team ${playerInfo.team} -> Team ${msg.payload.newTeam}`);
+          playerInfo.team = msg.payload.newTeam;
+          selectedTeam = msg.payload.newTeam;
+          try {
+            localStorage.setItem('feud_player_profile', JSON.stringify({
+              name: playerInfo.playerName,
+              team: playerInfo.team
+            }));
+          } catch (e) {}
+          if (currentGameState) {
+            handleStateUpdate(currentGameState);
+          } else {
+            updatePlayerTeamDisplay();
+          }
+        }
+        break;
+
       case 'STATE_UPDATE':
         handleStateUpdate(msg.payload);
         break;
@@ -224,6 +251,25 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleStateUpdate(state) {
     if (!state) return;
     currentGameState = state;
+
+    // Check if host updated this player's team or details in connectedPlayers roster
+    if (playerInfo && state.connectedPlayers) {
+      const serverPlayer = state.connectedPlayers.find(p => p.playerId === playerInfo.playerId);
+      if (serverPlayer && serverPlayer.team && serverPlayer.team !== playerInfo.team) {
+        console.log(`[Buzzer] Synced team change from roster: Team ${playerInfo.team} -> Team ${serverPlayer.team}`);
+        playerInfo.team = serverPlayer.team;
+        selectedTeam = serverPlayer.team;
+        try {
+          localStorage.setItem('feud_player_profile', JSON.stringify({
+            name: playerInfo.playerName,
+            team: playerInfo.team
+          }));
+        } catch (e) {}
+      }
+      if (serverPlayer && typeof serverPlayer.isCaptain !== 'undefined') {
+        playerInfo.isCaptain = serverPlayer.isCaptain;
+      }
+    }
 
     // Update custom team names on join buttons too
     updateJoinTeamNames(state.team1.name, state.team2.name);

@@ -23,7 +23,7 @@
     <div class="header-actions">
       <div class="room-input-group">
         <span style="font-size:0.85rem;color:var(--text-muted);font-weight:800;font-family:var(--font-display);">ROOM:</span>
-        <input type="text" id="roomCodeInput" class="form-input" style="width:95px;padding:6px 8px;font-size:0.9rem;font-weight:800;text-transform:uppercase;" value="FEUD">
+        <input type="text" id="roomCodeInput" class="form-input" style="width:95px;padding:6px 8px;font-size:0.9rem;font-weight:800;text-transform:uppercase;" placeholder="CODE">
         <button id="setRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Set Custom Room Code">Set</button>
         <button id="randomRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Generate Clean Random Room Code">🎲 New</button>
         <button id="reconnectWebRtcBtn" class="icon-btn" style="padding:6px 10px;" title="Reconnect WebRTC Signaling">🔄 Reconnect</button>
@@ -600,6 +600,56 @@
 
       <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,0.1);padding-top:14px;display:flex;justify-content:flex-end;">
         <button class="btn-secondary close-modal-btn" style="padding:8px 24px;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Initial Host Password Setup Modal (Onboarding) -->
+  <div class="modal-overlay" id="initialPasswordModal">
+    <div class="modal-card" style="max-width:480px;text-align:center;">
+      <div style="font-size:3rem;margin-bottom:8px;">🔑</div>
+      <h3 class="modal-title" style="font-size:1.5rem;color:var(--gold-primary);margin-bottom:6px;">Set Admin Protection</h3>
+      <p style="font-size:0.88rem;color:var(--text-muted);line-height:1.5;margin-bottom:18px;">
+        Choose a supervisor password so players on other devices cannot alter scores or reveal answers.
+      </p>
+
+      <!-- Option 1: Fast Default -->
+      <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(246,185,59,0.35);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:0.85rem;font-weight:800;color:var(--gold-primary);">RECOMMENDED FOR QUICK PLAY</span>
+          <span class="badge badge-gold" style="font-size:0.7rem;">Default</span>
+        </div>
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px;">
+          Standard password: <code style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.4);padding:2px 6px;border-radius:4px;">feudadmin</code>
+        </div>
+        <button type="button" id="useDefaultPasswordBtn" class="btn-primary" style="width:100%;padding:10px;font-size:0.95rem;">
+          ⚡ Use Default Password (feudadmin)
+        </button>
+      </div>
+
+      <!-- Divider -->
+      <div style="display:flex;align-items:center;gap:10px;margin:12px 0;color:var(--text-muted);font-size:0.78rem;">
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
+        <span>OR CREATE YOUR OWN</span>
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
+      </div>
+
+      <!-- Option 2: Custom Password -->
+      <div style="text-align:left;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:14px;">
+        <label class="form-label" style="font-size:0.82rem;color:var(--text-light);margin-bottom:6px;display:block;">Custom Admin Password:</label>
+        <div style="display:flex;gap:8px;">
+          <input type="password" id="initialCustomPasswordInput" class="form-input" placeholder="Enter custom password..." style="flex:1;font-size:0.92rem;">
+          <button type="button" id="saveCustomPasswordBtn" class="btn-secondary" style="padding:8px 16px;white-space:nowrap;font-size:0.9rem;">
+            Save
+          </button>
+        </div>
+        <div id="initialPassErrorMsg" style="display:none;color:#ff5252;font-size:0.75rem;margin-top:6px;font-weight:700;">Password must be at least 4 characters.</div>
+      </div>
+
+      <div style="margin-top:14px;text-align:right;">
+        <button type="button" id="skipPasswordSetupBtn" class="icon-btn" style="font-size:0.78rem;color:var(--text-muted);background:transparent;border:none;cursor:pointer;">
+          Decide Later (Keeps default feudadmin) ➔
+        </button>
       </div>
     </div>
   </div>

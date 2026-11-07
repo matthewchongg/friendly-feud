@@ -1,12 +1,21 @@
-﻿/**
+/**
  * Family Feud Game State Management
  */
+
+function generateRandomRoomCode() {
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'FF-';
+  for (let i = 0; i < 4; i++) {
+    code += letters.charAt(Math.floor(Math.random() * letters.length));
+  }
+  return code;
+}
 
 class GameState {
   constructor() {
     this.storageKey = 'feud_live_state';
     this.defaultState = {
-      roomCode: 'FEUD',
+      roomCode: generateRandomRoomCode(),
       totalRounds: 3, // Custom configurable total rounds (e.g. 1 to 10)
       currentRound: 1,
       multiplier: 1, // Current round multiplier
@@ -63,7 +72,11 @@ class GameState {
     try {
       const raw = localStorage.getItem(this.storageKey);
       if (raw) {
-        return Object.assign({}, this.defaultState, JSON.parse(raw));
+        const loaded = Object.assign({}, this.defaultState, JSON.parse(raw));
+        if (!loaded.roomCode || loaded.roomCode === 'FEUD') {
+          loaded.roomCode = generateRandomRoomCode();
+        }
+        return loaded;
       }
     } catch (e) {
       console.warn('Could not read state from localStorage', e);

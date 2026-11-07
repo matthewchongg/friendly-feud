@@ -162,9 +162,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   renderUI();
 
+  function generateRandomRoomCode() {
+    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'FF-';
+    for (let i = 0; i < 4; i++) {
+      code += letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+    return code;
+  }
+
   // --- WebRTC & Sync Setup ---
-  function initRoom() {
-    const code = (state.roomCode || 'FEUD').toUpperCase().trim();
+  function initRoom(requestedCode) {
+    let code = (requestedCode || state.roomCode || '').toUpperCase().trim();
+    if (!code || code === 'FEUD') {
+      code = generateRandomRoomCode();
+    }
     state.roomCode = code;
     if (roomCodeInput) roomCodeInput.value = code;
 
@@ -176,18 +188,21 @@ document.addEventListener('DOMContentLoaded', () => {
     sync.initHostPeer(code, (evt) => {
       if (!webrtcStatusEl) return;
       if (evt.status === 'connected') {
+        state.roomCode = evt.roomCode;
+        if (roomCodeInput) roomCodeInput.value = evt.roomCode;
         webrtcStatusEl.className = 'badge badge-green';
-        webrtcStatusEl.textContent = `🟢 Online: ${code} (${evt.connectedCount || 0} buzzers)`;
-        webrtcStatusEl.title = `Host active. Peer ID: feud-room-${code}. Devices connected: ${evt.connectedCount || 0}`;
-        if (roomCodeInput) roomCodeInput.value = code;
-        state.roomCode = code;
+        webrtcStatusEl.textContent = `🟢 Online: ${evt.roomCode} (${evt.connectedCount || 0} buzzers)`;
+        webrtcStatusEl.title = `Host active and verified unused. Peer ID: feud-room-${evt.roomCode}. Devices connected: ${evt.connectedCount || 0}`;
+        window.gameState.update({ roomCode: evt.roomCode });
+      } else if (evt.status === 'code-collision') {
+        state.roomCode = evt.roomCode;
+        if (roomCodeInput) roomCodeInput.value = evt.roomCode;
+        webrtcStatusEl.className = 'badge badge-gold';
+        webrtcStatusEl.textContent = `🟡 Finding unused code: ${evt.roomCode}...`;
+        window.gameState.update({ roomCode: evt.roomCode });
       } else if (evt.status === 'connecting') {
         webrtcStatusEl.className = 'badge badge-gold';
-        webrtcStatusEl.textContent = `🟡 Connecting: ${code}...`;
-      } else if (evt.status === 'id-taken') {
-        webrtcStatusEl.className = 'badge badge-gold';
-        webrtcStatusEl.textContent = `⚠️ Room "${code}" Busy (Click "🎲 New")`;
-        webrtcStatusEl.title = 'Room code is occupied or clearing. Waiting 3s to reconnect, or click "🎲 New" for a fresh code.';
+        webrtcStatusEl.textContent = `🟡 Connecting: ${evt.roomCode || code}...`;
       } else if (evt.status === 'disconnected') {
         webrtcStatusEl.className = 'badge badge-gold';
         webrtcStatusEl.textContent = '🟡 Reconnecting...';
@@ -686,9 +701,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     item.querySelector('.switch-team-btn').addEventListener('click', () => {
+      const oldTeam = p.team;
       p.team = p.team === 1 ? 2 : 1;
       if (state.faceOff.headPlayerTeam1 === p.playerId) state.faceOff.headPlayerTeam1 = null;
       if (state.faceOff.headPlayerTeam2 === p.playerId) state.faceOff.headPlayerTeam2 = null;
+      ensureValidHeadPlayers();
+      sync.broadcast('PLAYER_TEAM_CHANGED', {
+        playerId: p.playerId,
+        playerName: p.playerName,
+        oldTeam: oldTeam,
+        newTeam: p.team
+      });
       broadcastState();
       renderUI();
     });
@@ -1022,23 +1045,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Room Setup & Popouts ---
   if (setRoomBtn) {
     setRoomBtn.addEventListener('click', () => {
-      const newCode = (roomCodeInput.value || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+      const newCode = (roomCodeInput.value || generateRandomRoomCode()).toUpperCase().replace(/[^A-Z0-9_-]/g, '');
       state.roomCode = newCode;
-      initRoom();
+      initRoom(newCode);
       broadcastState();
     });
   }
 
   if (randomRoomBtn) {
     randomRoomBtn.addEventListener('click', () => {
-      const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      let code = 'FF-';
-      for (let i = 0; i < 4; i++) {
-        code += letters.charAt(Math.floor(Math.random() * letters.length));
-      }
+      const code = generateRandomRoomCode();
       state.roomCode = code;
       if (roomCodeInput) roomCodeInput.value = code;
-      initRoom();
+      initRoom(code);
       broadcastState();
       renderUI();
     });
@@ -1552,6 +1571,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const authErrorMsg = document.getElementById('authErrorMsg');
   const adminUnlockBtn = document.getElementById('adminUnlockBtn');
 
+  const initialPasswordModal = document.getElementById('initialPasswordModal');
+  const useDefaultPasswordBtn = document.getElementById('useDefaultPasswordBtn');
+  const initialCustomPasswordInput = document.getElementById('initialCustomPasswordInput');
+  const saveCustomPasswordBtn = document.getElementById('saveCustomPasswordBtn');
+  const initialPassErrorMsg = document.getElementById('initialPassErrorMsg');
+  const skipPasswordSetupBtn = document.getElementById('skipPasswordSetupBtn');
+
   const passwordSettingsBtn = document.getElementById('passwordSettingsBtn');
   const passwordModal = document.getElementById('passwordModal');
   const adminCurrentPasswordDisplay = document.getElementById('adminCurrentPasswordDisplay');
@@ -1564,18 +1590,56 @@ document.addEventListener('DOMContentLoaded', () => {
     return localStorage.getItem('feud_admin_password') || 'feudadmin';
   }
 
-  function checkAdminAuth() {
-    const isAuthed = sessionStorage.getItem('feud_admin_auth') === 'true';
-    if (!isAuthed) {
-      if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
-      if (adminPasswordAuthInput) {
-        setTimeout(() => adminPasswordAuthInput.focus(), 150);
-      }
-    } else {
-      if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
+  // Host opening admin screen is authenticated by default - never locked out on initial access!
+  sessionStorage.setItem('feud_admin_auth', 'true');
+  if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
+
+  // Immediately ask host to configure password on first access (use default or custom)
+  function checkInitialPasswordPrompt() {
+    const isSetupDone = localStorage.getItem('feud_admin_password_setup_done') === 'true';
+    if (!isSetupDone && initialPasswordModal) {
+      initialPasswordModal.classList.add('active');
     }
   }
 
+  if (useDefaultPasswordBtn) {
+    useDefaultPasswordBtn.addEventListener('click', () => {
+      localStorage.setItem('feud_admin_password', 'feudadmin');
+      localStorage.setItem('feud_admin_password_setup_done', 'true');
+      if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = 'feudadmin';
+      if (initialPasswordModal) initialPasswordModal.classList.remove('active');
+    });
+  }
+
+  if (saveCustomPasswordBtn && initialCustomPasswordInput) {
+    const handleCustomSave = () => {
+      const pass = initialCustomPasswordInput.value.trim();
+      if (!pass || pass.length < 4) {
+        if (initialPassErrorMsg) initialPassErrorMsg.style.display = 'block';
+        initialCustomPasswordInput.focus();
+        return;
+      }
+      if (initialPassErrorMsg) initialPassErrorMsg.style.display = 'none';
+      localStorage.setItem('feud_admin_password', pass);
+      localStorage.setItem('feud_admin_password_setup_done', 'true');
+      if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = pass;
+      if (initialPasswordModal) initialPasswordModal.classList.remove('active');
+    };
+
+    saveCustomPasswordBtn.addEventListener('click', handleCustomSave);
+    initialCustomPasswordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleCustomSave();
+    });
+  }
+
+  if (skipPasswordSetupBtn) {
+    skipPasswordSetupBtn.addEventListener('click', () => {
+      localStorage.setItem('feud_admin_password_setup_done', 'true');
+      if (initialPasswordModal) initialPasswordModal.classList.remove('active');
+    });
+  }
+
+  // Unlock logic for when screen is locked via "Lock Screen Now"
   if (adminUnlockBtn && adminPasswordAuthInput) {
     const attemptUnlock = () => {
       const inputPass = adminPasswordAuthInput.value.trim();
@@ -1635,12 +1699,16 @@ document.addEventListener('DOMContentLoaded', () => {
     lockScreenNowBtn.addEventListener('click', () => {
       sessionStorage.removeItem('feud_admin_auth');
       if (passwordModal) passwordModal.classList.remove('active');
-      checkAdminAuth();
+      if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
+      if (adminPasswordAuthInput) {
+        adminPasswordAuthInput.value = '';
+        adminPasswordAuthInput.focus();
+      }
     });
   }
 
-  // Run initial password authentication check
-  checkAdminAuth();
+  // Prompt on initial access
+  checkInitialPasswordPrompt();
 
   // ==========================================
   // AI QUESTION GENERATOR (PG GUARDRAILS)
