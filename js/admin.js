@@ -323,6 +323,12 @@ document.addEventListener('DOMContentLoaded', () => {
       loadQuestion(qManager.getAll()[0]);
     }
 
+    // Avoid redundant re-initialization if host peer is already online or connecting for this room
+    if (sync.roomCode === code && (sync.isOnline || sync._isConnecting) && sync.role === 'host') {
+      console.log(`[Admin] Host peer already active or connecting for room: ${code}`);
+      return;
+    }
+
     if (webrtcStatusEl) {
       webrtcStatusEl.className = 'badge badge-gold';
       webrtcStatusEl.textContent = `🟡 Connecting: ${code}...`;
@@ -1435,7 +1441,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (reconnectWebRtcBtn) {
     reconnectWebRtcBtn.addEventListener('click', () => {
-      initRoom();
+      sync.destroyPeer();
+      initRoom(state.roomCode);
+    });
+  }
+
+  if (webrtcStatusEl) {
+    webrtcStatusEl.style.cursor = 'pointer';
+    webrtcStatusEl.title = 'Click to force reconnect WebRTC';
+    webrtcStatusEl.addEventListener('click', () => {
+      sync.destroyPeer();
+      initRoom(state.roomCode);
     });
   }
 
@@ -2411,10 +2427,14 @@ document.addEventListener('DOMContentLoaded', () => {
           sessionStorage.setItem('feud_admin_auth', 'true');
           state.roomCode = 'FSA-POLYU';
           if (roomCodeInput) roomCodeInput.value = 'FSA-POLYU';
-          initRoom('FSA-POLYU');
+          if (sync.roomCode !== 'FSA-POLYU' || !sync.isOnline) {
+            initRoom('FSA-POLYU');
+          }
         } else {
           sessionStorage.setItem('feud_admin_auth', 'true');
-          initRoom(state.roomCode);
+          if (sync.roomCode !== state.roomCode || !sync.isOnline) {
+            initRoom(state.roomCode);
+          }
         }
 
         if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
