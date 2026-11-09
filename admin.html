@@ -26,7 +26,6 @@
         <input type="text" id="roomCodeInput" class="form-input" style="width:95px;padding:6px 8px;font-size:0.9rem;font-weight:800;text-transform:uppercase;" placeholder="CODE">
         <button id="setRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Set Custom Room Code">Set</button>
         <button id="randomRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Generate Clean Random Room Code">🎲 New</button>
-        <button id="fsaPresetBtn" class="icon-btn" style="padding:6px 10px;background:rgba(246,185,59,0.22);border-color:var(--gold-border);color:var(--gold-primary);font-weight:800;" title="Event Preset: FSA-POLYU (Password: fsa-polyu-pass)">🌟 FSA-POLYU</button>
         <button id="reconnectWebRtcBtn" class="icon-btn" style="padding:6px 10px;" title="Reconnect WebRTC Signaling">🔄 Reconnect</button>
       </div>
 
@@ -43,7 +42,7 @@
     <button type="button" class="mobile-nav-btn active" data-target="faceoffCard">⚡ Face-Off</button>
     <button type="button" class="mobile-nav-btn" data-target="boardPlayCard">🎯 Board</button>
     <button type="button" class="mobile-nav-btn" data-target="teamsRosterCard">👥 Rosters</button>
-    <button type="button" class="mobile-nav-btn" data-target="soundFxCard">🔊 Sounds</button>
+    <button type="button" class="mobile-nav-btn" data-target="soundFxCard" id="mobileSoundNavBtn" style="display:none;">🔊 Sounds</button>
     <button type="button" class="mobile-nav-btn" id="mobileOpenQuestionsBtn">📚 Questions</button>
   </nav>
 
@@ -376,8 +375,8 @@
         </div>
       </section>
 
-      <!-- Philippine Family Feud Custom Soundboard -->
-      <section class="control-card" id="soundFxCard">
+      <!-- Philippine Family Feud Custom Soundboard (Exclusive to FSA-POLYU) -->
+      <section class="control-card" id="soundFxCard" style="display:none;">
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:8px;">
             <span>🔊 Soundboard</span>
@@ -811,6 +810,7 @@
   <!-- Scripts -->
   <script src="js/sound.js"></script>
   <script src="js/qrcode.js"></script>
+  <script src="js/special_rooms.js"></script>
   <script src="js/questions.js"></script>
   <script src="js/state.js"></script>
   <script src="js/sync.js"></script>

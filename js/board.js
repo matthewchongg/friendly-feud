@@ -58,6 +58,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const roomParam = (urlParams.get('room') || state.roomCode || '').toUpperCase().trim();
   if (roomBadgeEl) roomBadgeEl.textContent = roomParam ? `ROOM: ${roomParam}` : 'ROOM: WAITING...';
 
+  function applyRoomSoundTheme(roomCode) {
+    if (!sound) return;
+    const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(roomCode) : null;
+    if (special && special.enableSoundboard) {
+      sound.setTheme('philippines');
+    } else {
+      sound.setTheme('classic');
+    }
+  }
+  applyRoomSoundTheme(roomParam);
+
   // Start Sync Engine as VIEWER (Board connects to Host without fighting for host ID)
   if (roomParam) {
     sync.initViewerPeer(roomParam, (status) => {
@@ -77,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'STATE_UPDATE':
         state = msg.payload;
         window.gameState.update(state);
+        if (state.roomCode) applyRoomSoundTheme(state.roomCode);
         renderState(state);
         if (state.roomCode && roomBadgeEl) {
           roomBadgeEl.textContent = `ROOM: ${state.roomCode}${sync.isOnline ? ' (LIVE)' : ''}`;

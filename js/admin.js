@@ -14,15 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeFolderFilter = 'all';
   let editingFolderId = null;
 
-  // Special Event Room & Password Preset
-  const SPECIAL_ROOM_CODE = 'FSA-POLYU';
-  const SPECIAL_ROOM_PASS = 'fsa-polyu-pass';
-
   // DOM Elements - Navigation & Room
   const roomCodeInput = document.getElementById('roomCodeInput');
   const setRoomBtn = document.getElementById('setRoomBtn');
   const randomRoomBtn = document.getElementById('randomRoomBtn');
-  const fsaPresetBtn = document.getElementById('fsaPresetBtn');
   const reconnectWebRtcBtn = document.getElementById('reconnectWebRtcBtn');
   const clearRosterBtn = document.getElementById('clearRosterBtn');
   const webrtcStatusEl = document.getElementById('webrtcStatus');
@@ -32,6 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const qrModalEl = document.getElementById('qrModal');
   const qrCanvas = document.getElementById('qrCanvas');
   const qrJoinUrlEl = document.getElementById('qrJoinUrl');
+  const soundFxCard = document.getElementById('soundFxCard');
+  const mobileSoundNavBtn = document.getElementById('mobileSoundNavBtn');
 
   // DOM Elements - Admin Password & Auth Gate
   const adminAuthOverlay = document.getElementById('adminAuthOverlay');
@@ -234,6 +231,38 @@ document.addEventListener('DOMContentLoaded', () => {
     return code;
   }
 
+  // --- Special Event Room Scoping & Soundboard Exclusivity ---
+  function updateSpecialRoomState(code) {
+    const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(code) : null;
+    if (special && special.enableSoundboard) {
+      if (soundFxCard) soundFxCard.style.display = 'block';
+      if (mobileSoundNavBtn) mobileSoundNavBtn.style.display = 'inline-flex';
+      sound.setTheme('philippines');
+    } else {
+      if (soundFxCard) soundFxCard.style.display = 'none';
+      if (mobileSoundNavBtn) mobileSoundNavBtn.style.display = 'none';
+      sound.setTheme('classic');
+      if (soundFxCard && soundFxCard.classList.contains('active-card')) {
+        document.querySelectorAll('.control-card').forEach(c => c.classList.remove('active-card'));
+        const defaultCard = document.getElementById('faceoffCard');
+        if (defaultCard) defaultCard.classList.add('active-card');
+        document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+        const defaultNavBtn = document.querySelector('.mobile-nav-btn[data-target="faceoffCard"]');
+        if (defaultNavBtn) defaultNavBtn.classList.add('active');
+      }
+    }
+
+    // Scoped Question Database Isolation
+    if (special) {
+      qManager.setScope(special.code, special.questions, special.folders);
+    } else {
+      qManager.setScope(null);
+    }
+
+    if (typeof updateSoundThemeUI === 'function') updateSoundThemeUI();
+    if (typeof updateAuthOverlayHint === 'function') updateAuthOverlayHint();
+  }
+
   // --- WebRTC & Sync Setup ---
   function initRoom(requestedCode) {
     let code = (requestedCode || state.roomCode || '').toUpperCase().trim();
@@ -242,10 +271,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     state.roomCode = code;
     if (roomCodeInput) roomCodeInput.value = code;
-    if (typeof updateAuthOverlayHint === 'function') updateAuthOverlayHint();
-    if (typeof updateSoundThemeUI === 'function') updateSoundThemeUI();
+
+    updateSpecialRoomState(code);
+
+    if (typeof checkInitialPasswordPrompt === 'function') {
+      checkInitialPasswordPrompt();
+    }
     if (adminCurrentPasswordDisplay) {
       adminCurrentPasswordDisplay.value = getAdminPassword();
+    }
+
+    populateFolderDropdowns();
+    populateQuestionDropdown();
+
+    // Ensure currentQuestion matches active scope
+    const matched = qManager.getById(state.currentQuestion ? state.currentQuestion.id : null);
+    if (!matched && qManager.getAll().length > 0) {
+      loadQuestion(qManager.getAll()[0]);
     }
 
     if (webrtcStatusEl) {
@@ -1276,6 +1318,15 @@ document.addEventListener('DOMContentLoaded', () => {
       state.roomCode = newCode;
       initRoom(newCode);
       broadcastState();
+      renderUI();
+    });
+  }
+
+  if (roomCodeInput) {
+    roomCodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        if (setRoomBtn) setRoomBtn.click();
+      }
     });
   }
 
@@ -1287,23 +1338,6 @@ document.addEventListener('DOMContentLoaded', () => {
       initRoom(code);
       broadcastState();
       renderUI();
-    });
-  }
-
-  if (fsaPresetBtn) {
-    fsaPresetBtn.addEventListener('click', () => {
-      state.roomCode = SPECIAL_ROOM_CODE;
-      if (roomCodeInput) roomCodeInput.value = SPECIAL_ROOM_CODE;
-      initRoom(SPECIAL_ROOM_CODE);
-      localStorage.setItem('feud_admin_password_setup_done', 'true');
-      localStorage.setItem('feud_admin_password_FSA-POLYU', SPECIAL_ROOM_PASS);
-      if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = SPECIAL_ROOM_PASS;
-      updateAuthOverlayHint();
-      sound.setTheme('philippines');
-      updateSoundThemeUI();
-      broadcastState();
-      renderUI();
-      alert(`🌟 Switched to Event Preset!\n\nRoom Code: ${SPECIAL_ROOM_CODE}\nAdmin Password: ${SPECIAL_ROOM_PASS}\nSoundboard: 🇵🇭 Philippine Family Feud (Active)`);
     });
   }
 
@@ -1949,10 +1983,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ADMIN PASSWORD SECURITY & SETTINGS (GETTER & SETTER)
   // ==========================================
   function updateAuthOverlayHint() {
-    const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
+    const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
     if (authOverlayHint) {
-      if (isSpecialRoom) {
-        authOverlayHint.innerHTML = `🌟 Event Room: <strong style="color:var(--gold-primary);">${SPECIAL_ROOM_CODE}</strong><br>Default Password: <code style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">${SPECIAL_ROOM_PASS}</code>`;
+      if (special) {
+        authOverlayHint.innerHTML = `<span style="color:var(--text-muted);font-style:italic;">🔒 Protected Event Room. Enter admin password to unlock.</span>`;
       } else {
         authOverlayHint.innerHTML = `Default password is: <code style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">feudadmin</code>`;
       }
@@ -1960,32 +1994,41 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getAdminPassword() {
-    const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
-    if (isSpecialRoom) {
-      return localStorage.getItem('feud_admin_password_FSA-POLYU') || SPECIAL_ROOM_PASS;
+    const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
+    if (special) {
+      return localStorage.getItem(`feud_admin_password_${special.code}`) || special.password;
     }
     return localStorage.getItem('feud_admin_password') || 'feudadmin';
   }
 
   // Check password authentication & setup status
   function checkInitialPasswordPrompt() {
-    const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
+    const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
     const isSetupDone = localStorage.getItem('feud_admin_password_setup_done') === 'true';
-    const isAuthenticated = sessionStorage.getItem('feud_admin_auth') === 'true';
+    const isAuth = special
+      ? (sessionStorage.getItem(`feud_admin_auth_${special.code}`) === 'true')
+      : (sessionStorage.getItem('feud_admin_auth') === 'true');
 
     updateAuthOverlayHint();
 
-    if (isSpecialRoom) {
-      if (!localStorage.getItem('feud_admin_password_FSA-POLYU')) {
-        localStorage.setItem('feud_admin_password_FSA-POLYU', SPECIAL_ROOM_PASS);
+    if (special) {
+      if (initialPasswordModal) initialPasswordModal.classList.remove('active');
+      if (!isAuth) {
+        if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
+        if (adminPasswordAuthInput) {
+          setTimeout(() => adminPasswordAuthInput.focus(), 100);
+        }
+      } else {
+        if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
       }
+      return;
     }
 
-    if (!isSetupDone && !isSpecialRoom) {
+    if (!isSetupDone) {
       // First access on standard room: prompt host to configure password immediately
       if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
       if (initialPasswordModal) initialPasswordModal.classList.add('active');
-    } else if (!isAuthenticated) {
+    } else if (!isAuth) {
       // Setup already completed, but this session is locked: prompt passkey overlay
       if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
       if (initialPasswordModal) initialPasswordModal.classList.remove('active');
@@ -2001,10 +2044,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (useDefaultPasswordBtn) {
     useDefaultPasswordBtn.addEventListener('click', () => {
-      const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
-      const defPass = isSpecialRoom ? SPECIAL_ROOM_PASS : 'feudadmin';
-      if (isSpecialRoom) {
-        localStorage.setItem('feud_admin_password_FSA-POLYU', defPass);
+      const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
+      const defPass = special ? special.password : 'feudadmin';
+      if (special) {
+        localStorage.setItem(`feud_admin_password_${special.code}`, defPass);
+        sessionStorage.setItem(`feud_admin_auth_${special.code}`, 'true');
       } else {
         localStorage.setItem('feud_admin_password', defPass);
       }
@@ -2024,9 +2068,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (initialPassErrorMsg) initialPassErrorMsg.style.display = 'none';
-      const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
-      if (isSpecialRoom) {
-        localStorage.setItem('feud_admin_password_FSA-POLYU', pass);
+      const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
+      if (special) {
+        localStorage.setItem(`feud_admin_password_${special.code}`, pass);
+        sessionStorage.setItem(`feud_admin_auth_${special.code}`, 'true');
       } else {
         localStorage.setItem('feud_admin_password', pass);
       }
@@ -2054,12 +2099,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (adminUnlockBtn && adminPasswordAuthInput) {
     const attemptUnlock = () => {
       const inputPass = adminPasswordAuthInput.value.trim();
-      const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
+      const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
       const targetPass = getAdminPassword();
-      const isFsaMatch = isSpecialRoom && inputPass.toLowerCase() === SPECIAL_ROOM_PASS.toLowerCase();
+      const isSpecialMatch = special && inputPass.toLowerCase() === (special.password || '').toLowerCase();
 
-      if (inputPass === targetPass || isFsaMatch) {
+      if (inputPass === targetPass || isSpecialMatch) {
         sessionStorage.setItem('feud_admin_auth', 'true');
+        if (special) {
+          sessionStorage.setItem(`feud_admin_auth_${special.code}`, 'true');
+        }
         if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
         if (authErrorMsg) authErrorMsg.style.display = 'none';
         adminPasswordAuthInput.value = '';
@@ -2103,9 +2151,9 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Please enter a password of at least 4 characters.');
         return;
       }
-      const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
-      if (isSpecialRoom) {
-        localStorage.setItem('feud_admin_password_FSA-POLYU', newPass);
+      const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
+      if (special) {
+        localStorage.setItem(`feud_admin_password_${special.code}`, newPass);
       } else {
         localStorage.setItem('feud_admin_password', newPass);
       }
@@ -2117,7 +2165,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (lockScreenNowBtn) {
     lockScreenNowBtn.addEventListener('click', () => {
+      const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
       sessionStorage.removeItem('feud_admin_auth');
+      if (special) {
+        sessionStorage.removeItem(`feud_admin_auth_${special.code}`);
+      }
       if (passwordModal) passwordModal.classList.remove('active');
       if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
       if (adminPasswordAuthInput) {

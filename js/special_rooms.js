@@ -1,0 +1,209 @@
+/**
+ * Secret / Special Room Codes & Exclusive Question Databases Registry
+ * Stored securely and only loaded when the matching room code + password is authenticated.
+ */
+(function() {
+  window.SPECIAL_ROOM_REGISTRY = {
+    "FSA-POLYU": {
+      code: "FSA-POLYU",
+      password: "fsa-polyu-pass",
+      name: "PolyU Filipino Students Association Feud Night",
+      enableSoundboard: true,
+      folders: [
+        {
+          id: "fsa-polyu",
+          name: "FSA PolyU Specials",
+          icon: "🌟",
+          description: "Exclusive Filipino Culture & PolyU Campus Survey Questions"
+        },
+        {
+          id: "default",
+          name: "Default Feud",
+          icon: "📁",
+          description: "Standard Survey Questions"
+        }
+      ],
+      questions: [
+        {
+          id: "fsa-q1",
+          folderId: "fsa-polyu",
+          question: "Name a Filipino dish you will always find at a family party or fiesta.",
+          answers: [
+            { text: "Crispy Lechon / Roasted Pork", points: 36 },
+            { text: "Lumpiang Shanghai (Spring Rolls)", points: 26 },
+            { text: "Pancit Canton / Bihon", points: 18 },
+            { text: "Pork or Chicken Adobo", points: 10 },
+            { text: "Menudo / Caldereta", points: 6 },
+            { text: "Sweet Filipino Spaghetti with Hotdogs", points: 4 }
+          ]
+        },
+        {
+          id: "fsa-q2",
+          folderId: "fsa-polyu",
+          question: "Name something Filipino students always bring when moving to study abroad in Hong Kong.",
+          answers: [
+            { text: "Rice Cooker / Extra Bigas", points: 35 },
+            { text: "Sinigang mix & Mama Sita seasonings", points: 25 },
+            { text: "Cebu Dried Mangoes & Pinoy Snacks", points: 16 },
+            { text: "Portable Tabo / Bidet spray", points: 11 },
+            { text: "Universal UK/HK plug adapter", points: 8 },
+            { text: "Framed family photo / Rosary", points: 5 }
+          ]
+        },
+        {
+          id: "fsa-q3",
+          folderId: "fsa-polyu",
+          question: "Name a popular spot or activity PolyU students enjoy after a long day of lectures.",
+          answers: [
+            { text: "Hung Hom Promenade / Victoria Harbour walk", points: 32 },
+            { text: "Campus Canteen / Lawn grass hangout", points: 24 },
+            { text: "Tsim Sha Tsui shopping and dining", points: 18 },
+            { text: "Whampoa Aeon & Don Don Donki", points: 14 },
+            { text: "Library quiet study pods / Sleep", points: 7 },
+            { text: "Grabbing bubble tea / Milk tea", points: 5 }
+          ]
+        },
+        {
+          id: "fsa-q4",
+          folderId: "fsa-polyu",
+          question: "Name a classic song every Filipino knows how to sing on karaoke.",
+          answers: [
+            { text: "\"My Way\" - Frank Sinatra", points: 34 },
+            { text: "\"Torete\" - Moonstar88", points: 24 },
+            { text: "\"Ang Huling El Bimbo\" - Eraserheads", points: 18 },
+            { text: "\"Anak\" - Freddie Aguilar", points: 12 },
+            { text: "\"Hinahanap-Hanap Kita\" - Rivermaya", points: 7 },
+            { text: "\"Pusong Bato\"", points: 5 }
+          ]
+        },
+        {
+          id: "fsa-q5",
+          folderId: "fsa-polyu",
+          question: "Name an excuse students give to professors when arriving late to a morning class.",
+          answers: [
+            { text: "MTR train delay / Crowded platform", points: 38 },
+            { text: "Alarm didn't ring / Overslept", points: 28 },
+            { text: "Heavy rainstorm / Typhoon signal", points: 15 },
+            { text: "Cross-harbour tunnel traffic jam", points: 10 },
+            { text: "Campus podium elevator line was too long", points: 5 },
+            { text: "Forgot student ID card at hall/dorm", points: 4 }
+          ]
+        },
+        {
+          id: "fsa-q6",
+          folderId: "fsa-polyu",
+          question: "Name something you will always find in a Filipino household refrigerator.",
+          answers: [
+            { text: "Leftover cooked rice (ready for Sinangag)", points: 36 },
+            { text: "Jufran Banana Ketchup bottle", points: 24 },
+            { text: "Calamansi or sliced lemons", points: 17 },
+            { text: "Repurposed ice cream tub with ulam", points: 12 },
+            { text: "Fish sauce (Patis) & Silver Swan toyo", points: 7 },
+            { text: "Pitcher of ice cold water", points: 4 }
+          ]
+        },
+        {
+          id: "fsa-q7",
+          folderId: "fsa-polyu",
+          question: "Name a Filipino phrase parents say when you ask permission to go out.",
+          answers: [
+            { text: "\"Sinong mga kasama mo?\"", points: 38 },
+            { text: "\"Anong oras ka uuwi?\"", points: 26 },
+            { text: "\"Nag-aral ka na ba?\"", points: 16 },
+            { text: "\"Magkano na naman kailangan mo?\"", points: 10 },
+            { text: "\"Bahala ka sa buhay mo!\"", points: 6 },
+            { text: "\"Hindi pwede, may gagawin ka pa!\"", points: 4 }
+          ]
+        },
+        {
+          id: "fsa-q8",
+          folderId: "fsa-polyu",
+          question: "Name something students do during final exam week to cope with stress.",
+          answers: [
+            { text: "Binge-watching Netflix or KDramas", points: 35 },
+            { text: "Late-night instant noodles / snacks", points: 26 },
+            { text: "Power napping for hours", points: 18 },
+            { text: "Venting and complaining in group chats", points: 11 },
+            { text: "Mindlessly scrolling TikTok / Reels", points: 6 },
+            { text: "Praying for a generous grading curve", points: 4 }
+          ]
+        },
+        {
+          id: "fsa-q9",
+          folderId: "fsa-polyu",
+          question: "Name something Filipinos do whenever someone takes a group photo.",
+          answers: [
+            { text: "Flash the Peace sign / V sign", points: 38 },
+            { text: "Korean heart finger sign", points: 25 },
+            { text: "\"Patingin muna!\" (Check the photo first)", points: 17 },
+            { text: "Shout \"Wacky pose naman!\"", points: 11 },
+            { text: "Count \"Isa, dalawa, tatlo, Smile!\"", points: 6 },
+            { text: "Someone hiding their face in the back", points: 3 }
+          ]
+        },
+        {
+          id: "fsa-q10",
+          folderId: "fsa-polyu",
+          question: "Name a classic Hong Kong food that international students quickly fall in love with.",
+          answers: [
+            { text: "Dim Sum (Siu Mai & Har Gow)", points: 39 },
+            { text: "Egg Waffles (Gai Daan Tsai)", points: 24 },
+            { text: "HK Style Iced Milk Tea", points: 18 },
+            { text: "Char Siu Pork / Roasted Duck rice", points: 11 },
+            { text: "Pineapple Bun with Butter (Bolo Bao)", points: 5 },
+            { text: "Wonton Noodle Soup", points: 3 }
+          ]
+        },
+        {
+          id: "fsa-q11",
+          folderId: "fsa-polyu",
+          question: "Name a traditional gesture or habit Filipinos use to show respect or greeting.",
+          answers: [
+            { text: "\"Mano Po\" to elders", points: 39 },
+            { text: "Pointing directions with their lips / nguso", points: 25 },
+            { text: "\"Kamusta ka?\" hug or handshake", points: 18 },
+            { text: "Calling someone \"Ate\" or \"Kuya\"", points: 11 },
+            { text: "Cheek-to-cheek kiss / Beso-beso", points: 4 },
+            { text: "Eyebrow raise greeting from afar", points: 3 }
+          ]
+        },
+        {
+          id: "fsa-q12",
+          folderId: "fsa-polyu",
+          question: "Name what students procrastinate with instead of starting a big university project.",
+          answers: [
+            { text: "Suddenly deep-cleaning their entire room", points: 34 },
+            { text: "Scrolling endlessly through social media", points: 28 },
+            { text: "Cooking elaborate experimental meals", points: 17 },
+            { text: "Color-coding calendar & reorganizing desktop", points: 11 },
+            { text: "Going out for unnecessary convenience store runs", points: 6 },
+            { text: "Starting a brand new hobby or gym routine", points: 4 }
+          ]
+        }
+      ]
+    }
+  };
+
+  /**
+   * Helper to retrieve a special room configuration by code
+   */
+  window.getSpecialRoomConfig = function(code) {
+    if (!code) return null;
+    const clean = code.toUpperCase().trim();
+    return (window.SPECIAL_ROOM_REGISTRY && window.SPECIAL_ROOM_REGISTRY[clean]) ? window.SPECIAL_ROOM_REGISTRY[clean] : null;
+  };
+
+  // Optionally fetch updated JSON definitions from data/special_rooms.json when hosted on HTTP/HTTPS
+  if (typeof fetch === 'function' && typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+    fetch('data/special_rooms.json')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data && typeof data === 'object') {
+          Object.assign(window.SPECIAL_ROOM_REGISTRY, data);
+        }
+      })
+      .catch(() => {
+        // Fall back gracefully to the synchronous registry
+      });
+  }
+})();

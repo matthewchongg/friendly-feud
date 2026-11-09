@@ -435,6 +435,7 @@ const DEFAULT_QUESTIONS = [
 
 class QuestionManager {
   constructor() {
+    this.currentScope = null;
     this.storageKey = 'feud_custom_questions';
     this.foldersStorageKey = 'feud_question_folders';
     this.regenerationSeed = 0;
@@ -442,9 +443,26 @@ class QuestionManager {
     this.questions = this.loadQuestions();
   }
 
+  /**
+   * Set active storage scope (e.g. 'FSA-POLYU' for exclusive room questions)
+   * If scopeId is provided, all reads and writes are isolated to that room's database.
+   */
+  setScope(scopeId, presetQuestions = null, presetFolders = null) {
+    this.currentScope = scopeId ? scopeId.toUpperCase().trim() : null;
+    if (this.currentScope) {
+      this.storageKey = `feud_custom_questions_${this.currentScope}`;
+      this.foldersStorageKey = `feud_question_folders_${this.currentScope}`;
+    } else {
+      this.storageKey = 'feud_custom_questions';
+      this.foldersStorageKey = 'feud_question_folders';
+    }
+    this.folders = this.loadFolders(presetFolders);
+    this.questions = this.loadQuestions(presetQuestions);
+  }
+
   // --- Folder Management ---
 
-  loadFolders() {
+  loadFolders(presetFolders = null) {
     try {
       const saved = localStorage.getItem(this.foldersStorageKey);
       if (saved) {
@@ -459,6 +477,14 @@ class QuestionManager {
     } catch (e) {
       console.warn('Failed to load folders from storage:', e);
     }
+
+    if (presetFolders && Array.isArray(presetFolders) && presetFolders.length > 0) {
+      const cloned = JSON.parse(JSON.stringify(presetFolders));
+      this.folders = cloned;
+      this.saveFolders();
+      return cloned;
+    }
+
     return [
       { id: 'default', name: 'Default', icon: '📁', description: 'Standard Game Show Questions' }
     ];
@@ -526,7 +552,7 @@ class QuestionManager {
 
   // --- Questions Storage & Retrieval ---
 
-  loadQuestions() {
+  loadQuestions(presetQuestions = null) {
     try {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
@@ -537,13 +563,15 @@ class QuestionManager {
             if (!q.folderId) q.folderId = 'default';
           });
 
-          // Ensure all expanded default questions are merged in
-          const existingIds = new Set(parsed.map(q => q.id));
-          DEFAULT_QUESTIONS.forEach(defQ => {
-            if (!existingIds.has(defQ.id)) {
-              parsed.push({ ...defQ, folderId: 'default' });
-            }
-          });
+          // Only merge DEFAULT_QUESTIONS if we are in standard scope
+          if (!this.currentScope) {
+            const existingIds = new Set(parsed.map(q => q.id));
+            DEFAULT_QUESTIONS.forEach(defQ => {
+              if (!existingIds.has(defQ.id)) {
+                parsed.push({ ...defQ, folderId: 'default' });
+              }
+            });
+          }
 
           return parsed;
         }
@@ -551,6 +579,15 @@ class QuestionManager {
     } catch (e) {
       console.warn('Failed to load custom questions from storage:', e);
     }
+
+    // If preset questions are provided for this scope (e.g. FSA-POLYU)
+    if (presetQuestions && Array.isArray(presetQuestions) && presetQuestions.length > 0) {
+      const cloned = JSON.parse(JSON.stringify(presetQuestions));
+      this.questions = cloned;
+      this.saveQuestions();
+      return cloned;
+    }
+
     return JSON.parse(JSON.stringify(DEFAULT_QUESTIONS)).map(q => ({ ...q, folderId: 'default' }));
   }
 
@@ -639,6 +676,18 @@ class QuestionManager {
   }
 
   resetToDefaults() {
+    if (this.currentScope && typeof window.getSpecialRoomConfig === 'function') {
+      const special = window.getSpecialRoomConfig(this.currentScope);
+      if (special) {
+        this.folders = JSON.parse(JSON.stringify(special.folders || [
+          { id: 'default', name: 'Default', icon: '📁', description: 'Standard Game Show Questions' }
+        ]));
+        this.saveFolders();
+        this.questions = JSON.parse(JSON.stringify(special.questions || DEFAULT_QUESTIONS));
+        this.saveQuestions();
+        return this.questions;
+      }
+    }
     this.folders = [
       { id: 'default', name: 'Default', icon: '📁', description: 'Standard Game Show Questions' }
     ];
