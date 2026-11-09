@@ -43,7 +43,10 @@ class SyncEngine {
       this.hostConn = null;
     }
     if (this.peer && !this.peer.destroyed) {
-      try { this.peer.destroy(); } catch(e){}
+      try {
+        this.peer.disconnect();
+        this.peer.destroy();
+      } catch(e){}
     }
     this.peer = null;
     this.isOnline = false;
@@ -105,19 +108,14 @@ class SyncEngine {
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun.cloudflare.com:3478' },
-      {
-        urls: [
-          'stun:openrelay.metered.ca:80',
-          'turn:openrelay.metered.ca:80',
-          'turn:openrelay.metered.ca:443',
-          'turn:openrelay.metered.ca:443?transport=tcp',
-          'turns:openrelay.metered.ca:443?transport=tcp'
-        ],
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      }
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' }
     ];
+  }
+
+  getHostPeerId(code) {
+    return 'feud-polyufsa-' + (code || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
   }
 
   generateRoomCode() {
@@ -131,7 +129,7 @@ class SyncEngine {
 
   // ==========================================
   // HOST PEER (Admin Screen ONLY)
-  // Registers feud-room-[CODE] on PeerJS Cloud
+  // Registers feud-polyufsa-[CODE] on PeerJS Cloud
   // ==========================================
   initHostPeer(roomCode, onStatusChange) {
     this.role = 'host';
@@ -141,7 +139,7 @@ class SyncEngine {
       cleanCode = this.generateRoomCode();
     }
     this.roomCode = cleanCode;
-    const peerId = 'feud-room-' + this.roomCode;
+    const peerId = this.getHostPeerId(this.roomCode);
 
     if (typeof Peer === 'undefined') {
       if (onStatusChange) onStatusChange({ status: 'offline', message: 'PeerJS script not loaded' });
@@ -167,6 +165,7 @@ class SyncEngine {
       this.peer.on('open', (id) => {
         this.isOnline = true;
         this.retryAttempts = 0;
+        this.reclaimAttempts = 0;
         console.log(`[Host] WebRTC Room online with ID: ${id}`);
         if (this.statusCallback) {
           this.statusCallback({
@@ -190,18 +189,29 @@ class SyncEngine {
           // Never auto-switch a special designated event room!
           const isSpecial = (typeof window !== 'undefined' && typeof window.getSpecialRoomConfig === 'function' && window.getSpecialRoomConfig(this.roomCode)) || (this.roomCode === 'FSA-POLYU');
           if (isSpecial) {
-            console.warn(`[Host] Special event room "${this.roomCode}" is currently registered on PeerJS cloud. Reclaiming slot in 1.8s...`);
+            this.reclaimAttempts = (this.reclaimAttempts || 0) + 1;
+            if (this.reclaimAttempts > 5) {
+              if (this.statusCallback) {
+                this.statusCallback({
+                  status: 'error',
+                  roomCode: this.roomCode,
+                  message: `Room "${this.roomCode}" is active in another browser tab or device. Please close other admin tabs and tap Reconnect.`
+                });
+              }
+              return;
+            }
+            console.warn(`[Host] Special event room "${this.roomCode}" is currently registered on PeerJS cloud (attempt ${this.reclaimAttempts}/5). Reclaiming slot in 2s...`);
             if (this.statusCallback) {
               this.statusCallback({
                 status: 'connecting',
                 roomCode: this.roomCode,
-                message: `Claiming event room "${this.roomCode}" on server...`
+                message: `Reclaiming room "${this.roomCode}" from previous session...`
               });
             }
             if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
             this.reconnectTimer = setTimeout(() => {
               this.initHostPeer(this.roomCode, this.statusCallback);
-            }, 1800);
+            }, 2000);
             return;
           }
 
@@ -354,7 +364,7 @@ class SyncEngine {
     this.role = 'viewer';
     this.statusCallback = onStatusChange;
     this.roomCode = (roomCode || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
-    const targetHostId = 'feud-room-' + this.roomCode;
+    const targetHostId = this.getHostPeerId(this.roomCode);
 
     if (typeof Peer === 'undefined') {
       if (onStatusChange) onStatusChange({ status: 'offline', message: 'PeerJS script not loaded' });
@@ -451,7 +461,7 @@ class SyncEngine {
     this.statusCallback = onStatusChange;
     this.playerData = playerData;
     this.roomCode = (roomCode || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
-    const targetHostId = 'feud-room-' + this.roomCode;
+    const targetHostId = this.getHostPeerId(this.roomCode);
 
     if (typeof Peer === 'undefined') {
       if (onStatusChange) onStatusChange({ status: 'offline', message: 'PeerJS script not loaded' });
@@ -592,7 +602,7 @@ class SyncEngine {
   retryClientNow() {
     this.retryAttempts = 0;
     if (this.peer && !this.peer.destroyed) {
-      this.connectClientToHost('feud-room-' + this.roomCode);
+      this.connectClientToHost(this.getHostPeerId(this.roomCode));
     } else {
       this.initClientPeer(this.roomCode, this.playerData, this.statusCallback);
     }

@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (roomCodeInput) roomCodeInput.value = evt.roomCode;
         webrtcStatusEl.className = 'badge badge-green';
         webrtcStatusEl.textContent = `🟢 Online: ${evt.roomCode} (${evt.connectedCount || 0} buzzers)`;
-        webrtcStatusEl.title = `Host active and verified unused. Peer ID: feud-room-${evt.roomCode}. Devices connected: ${evt.connectedCount || 0}`;
+        webrtcStatusEl.title = `Host active and verified unused. Peer ID: ${evt.peerId}. Devices connected: ${evt.connectedCount || 0}`;
         window.gameState.update({ roomCode: evt.roomCode });
       } else if (evt.status === 'code-collision') {
         const isSpecial = (typeof window.getSpecialRoomConfig === 'function' && window.getSpecialRoomConfig(state.roomCode)) || state.roomCode === 'FSA-POLYU';
