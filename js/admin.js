@@ -14,10 +14,15 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeFolderFilter = 'all';
   let editingFolderId = null;
 
+  // Special Event Room & Password Preset
+  const SPECIAL_ROOM_CODE = 'FSA-POLYU';
+  const SPECIAL_ROOM_PASS = 'fsa-polyu-pass';
+
   // DOM Elements - Navigation & Room
   const roomCodeInput = document.getElementById('roomCodeInput');
   const setRoomBtn = document.getElementById('setRoomBtn');
   const randomRoomBtn = document.getElementById('randomRoomBtn');
+  const fsaPresetBtn = document.getElementById('fsaPresetBtn');
   const reconnectWebRtcBtn = document.getElementById('reconnectWebRtcBtn');
   const clearRosterBtn = document.getElementById('clearRosterBtn');
   const webrtcStatusEl = document.getElementById('webrtcStatus');
@@ -27,6 +32,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const qrModalEl = document.getElementById('qrModal');
   const qrCanvas = document.getElementById('qrCanvas');
   const qrJoinUrlEl = document.getElementById('qrJoinUrl');
+
+  // DOM Elements - Admin Password & Auth Gate
+  const adminAuthOverlay = document.getElementById('adminAuthOverlay');
+  const adminPasswordAuthInput = document.getElementById('adminPasswordAuthInput');
+  const authErrorMsg = document.getElementById('authErrorMsg');
+  const adminUnlockBtn = document.getElementById('adminUnlockBtn');
+  const authOverlayHint = document.getElementById('authOverlayHint');
+  const initialPasswordModal = document.getElementById('initialPasswordModal');
+  const useDefaultPasswordBtn = document.getElementById('useDefaultPasswordBtn');
+  const initialCustomPasswordInput = document.getElementById('initialCustomPasswordInput');
+  const saveCustomPasswordBtn = document.getElementById('saveCustomPasswordBtn');
+  const initialPassErrorMsg = document.getElementById('initialPassErrorMsg');
+  const skipPasswordSetupBtn = document.getElementById('skipPasswordSetupBtn');
+  const passwordSettingsBtn = document.getElementById('passwordSettingsBtn');
+  const passwordModal = document.getElementById('passwordModal');
+  const adminCurrentPasswordDisplay = document.getElementById('adminCurrentPasswordDisplay');
+  const copyAdminPasswordBtn = document.getElementById('copyAdminPasswordBtn');
+  const adminNewPasswordInput = document.getElementById('adminNewPasswordInput');
+  const saveAdminPasswordBtn = document.getElementById('saveAdminPasswordBtn');
+  const lockScreenNowBtn = document.getElementById('lockScreenNowBtn');
 
   // DOM Elements - Rounds & Multipliers
   const roundButtonsContainer = document.getElementById('roundButtonsContainer');
@@ -160,17 +185,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const aiNewFolderBtn = document.getElementById('aiNewFolderBtn');
   const aiGeneratedQuestionInput = document.getElementById('aiGeneratedQuestionInput');
 
-  // Sound FX buttons
+  // Sound FX & Philippine Family Feud Soundboard elements
+  const sfxThemeSongBtn = document.getElementById('sfxThemeSongBtn');
+  const themePlayIcon = document.getElementById('themePlayIcon');
+  const themePlayText = document.getElementById('themePlayText');
+  const themeSongStatus = document.getElementById('themeSongStatus');
+  const soundThemeBadge = document.getElementById('soundThemeBadge');
+  const sfxThemeToggleBtn = document.getElementById('sfxThemeToggleBtn');
   const sfxDingBtn = document.getElementById('sfxDing');
   const sfxStrikeBtn = document.getElementById('sfxStrike');
+  const sfxDoubleStrikeBtn = document.getElementById('sfxDoubleStrike');
   const sfxTripleStrikeBtn = document.getElementById('sfxTripleStrike');
+  const sfxFaceoffBtn = document.getElementById('sfxFaceoff');
   const sfxBuzzerBtn = document.getElementById('sfxBuzzer');
   const sfxGongBtn = document.getElementById('sfxGong');
   const sfxFanfareBtn = document.getElementById('sfxFanfare');
   const sfxMuteBtn = document.getElementById('sfxMute');
 
   // --- Initial Setup ---
-  initRoom();
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomFromUrl = urlParams.get('room');
+
+  initRoom(roomFromUrl);
   buildAnswersInputForm();
   renderDynamicRoundsBar();
   populateFolderDropdowns();
@@ -206,6 +242,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     state.roomCode = code;
     if (roomCodeInput) roomCodeInput.value = code;
+    if (typeof updateAuthOverlayHint === 'function') updateAuthOverlayHint();
+    if (typeof updateSoundThemeUI === 'function') updateSoundThemeUI();
+    if (adminCurrentPasswordDisplay) {
+      adminCurrentPasswordDisplay.value = getAdminPassword();
+    }
 
     if (webrtcStatusEl) {
       webrtcStatusEl.className = 'badge badge-gold';
@@ -923,6 +964,8 @@ document.addEventListener('DOMContentLoaded', () => {
     armBuzzerBtn.addEventListener('click', () => {
       state.faceOff.buzzerArmed = !state.faceOff.buzzerArmed;
       if (state.faceOff.buzzerArmed) {
+        sound.playFaceOff();
+        sync.broadcast('PLAY_SOUND', { sound: 'FACE_OFF' });
         state.faceOff.buzzWinner = null;
         state.faceOff.secondBuzz = null;
 
@@ -1075,7 +1118,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Strikes Supervisor ---
   function applyStrike(count) {
     state.strikes = count;
-    sound.playStrike();
+    if (count >= 3) {
+      sound.playTripleStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'TRIPLE_STRIKE' });
+    } else if (count === 2) {
+      sound.playDoubleStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'DOUBLE_STRIKE' });
+    } else {
+      sound.playStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'STRIKE' });
+    }
     sync.broadcast('SHOW_STRIKE', { count: count });
 
     if (state.strikes >= 3 && state.controllingTeam) {
@@ -1238,6 +1290,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (fsaPresetBtn) {
+    fsaPresetBtn.addEventListener('click', () => {
+      state.roomCode = SPECIAL_ROOM_CODE;
+      if (roomCodeInput) roomCodeInput.value = SPECIAL_ROOM_CODE;
+      initRoom(SPECIAL_ROOM_CODE);
+      localStorage.setItem('feud_admin_password_setup_done', 'true');
+      localStorage.setItem('feud_admin_password_FSA-POLYU', SPECIAL_ROOM_PASS);
+      if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = SPECIAL_ROOM_PASS;
+      updateAuthOverlayHint();
+      sound.setTheme('philippines');
+      updateSoundThemeUI();
+      broadcastState();
+      renderUI();
+      alert(`🌟 Switched to Event Preset!\n\nRoom Code: ${SPECIAL_ROOM_CODE}\nAdmin Password: ${SPECIAL_ROOM_PASS}\nSoundboard: 🇵🇭 Philippine Family Feud (Active)`);
+    });
+  }
+
   if (reconnectWebRtcBtn) {
     reconnectWebRtcBtn.addEventListener('click', () => {
       initRoom();
@@ -1322,13 +1391,108 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Sound FX buttons
-  if (sfxDingBtn) sfxDingBtn.addEventListener('click', () => { sound.playDing(); sync.broadcast('PLAY_SOUND', { sound: 'DING' }); });
-  if (sfxStrikeBtn) sfxStrikeBtn.addEventListener('click', () => { sound.playStrike(); sync.broadcast('PLAY_SOUND', { sound: 'STRIKE' }); });
-  if (sfxTripleStrikeBtn) sfxTripleStrikeBtn.addEventListener('click', () => { sound.playTripleStrike(); sync.broadcast('PLAY_SOUND', { sound: 'TRIPLE_STRIKE' }); });
-  if (sfxBuzzerBtn) sfxBuzzerBtn.addEventListener('click', () => { sound.playBuzzerHit(); sync.broadcast('PLAY_SOUND', { sound: 'BUZZER' }); });
-  if (sfxGongBtn) sfxGongBtn.addEventListener('click', () => { sound.playStealGong(); sync.broadcast('PLAY_SOUND', { sound: 'STEAL_GONG' }); });
-  if (sfxFanfareBtn) sfxFanfareBtn.addEventListener('click', () => { sound.playFanfare(); sync.broadcast('PLAY_SOUND', { sound: 'FANFARE' }); });
+  // Sound FX buttons & Philippine Family Feud Soundboard
+  function updateThemeButtonUI(isPlaying) {
+    if (!sfxThemeSongBtn) return;
+    if (isPlaying) {
+      if (themePlayIcon) themePlayIcon.textContent = '⏹';
+      if (themePlayText) themePlayText.textContent = 'Stop Theme Song';
+      if (themeSongStatus) themeSongStatus.textContent = 'Playing: Jeremiah Tiangco - "Ano\'ng Sabe" 🎶';
+      sfxThemeSongBtn.classList.add('sfx-playing');
+    } else {
+      if (themePlayIcon) themePlayIcon.textContent = '▶';
+      if (themePlayText) themePlayText.textContent = 'Play Theme Song';
+      if (themeSongStatus) themeSongStatus.textContent = 'Official Philippine Family Feud Theme Track';
+      sfxThemeSongBtn.classList.remove('sfx-playing');
+    }
+  }
+
+  sound.onThemeStateChange = (isPlaying) => {
+    updateThemeButtonUI(isPlaying);
+  };
+
+  if (sfxThemeSongBtn) {
+    sfxThemeSongBtn.addEventListener('click', () => {
+      const isPlaying = sound.toggleTheme();
+      sync.broadcast('PLAY_SOUND', { sound: isPlaying ? 'THEME_PLAY' : 'THEME_STOP' });
+    });
+  }
+
+  function updateSoundThemeUI() {
+    const curTheme = sound.getTheme();
+    if (soundThemeBadge) {
+      soundThemeBadge.textContent = curTheme === 'philippines' ? '🇵🇭 Philippine Feud Edition' : '🎹 Classic Synth SFX';
+      soundThemeBadge.className = curTheme === 'philippines' ? 'badge badge-gold' : 'badge';
+    }
+    if (sfxThemeToggleBtn) {
+      sfxThemeToggleBtn.textContent = curTheme === 'philippines' ? 'Theme: 🇵🇭 PH' : 'Theme: 🎹 Classic';
+    }
+  }
+
+  if (sfxThemeToggleBtn) {
+    sfxThemeToggleBtn.addEventListener('click', () => {
+      const nextTheme = sound.getTheme() === 'philippines' ? 'classic' : 'philippines';
+      sound.setTheme(nextTheme);
+      updateSoundThemeUI();
+    });
+  }
+
+  if (sfxDingBtn) {
+    sfxDingBtn.addEventListener('click', () => {
+      sound.playDing();
+      sync.broadcast('PLAY_SOUND', { sound: 'DING' });
+    });
+  }
+
+  if (sfxStrikeBtn) {
+    sfxStrikeBtn.addEventListener('click', () => {
+      sound.playStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'STRIKE' });
+    });
+  }
+
+  if (sfxDoubleStrikeBtn) {
+    sfxDoubleStrikeBtn.addEventListener('click', () => {
+      sound.playDoubleStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'DOUBLE_STRIKE' });
+    });
+  }
+
+  if (sfxTripleStrikeBtn) {
+    sfxTripleStrikeBtn.addEventListener('click', () => {
+      sound.playTripleStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'TRIPLE_STRIKE' });
+    });
+  }
+
+  if (sfxFaceoffBtn) {
+    sfxFaceoffBtn.addEventListener('click', () => {
+      sound.playFaceOff();
+      sync.broadcast('PLAY_SOUND', { sound: 'FACE_OFF' });
+    });
+  }
+
+  if (sfxBuzzerBtn) {
+    sfxBuzzerBtn.addEventListener('click', () => {
+      sound.playBuzzerHit();
+      sync.broadcast('PLAY_SOUND', { sound: 'BUZZER' });
+    });
+  }
+
+  if (sfxGongBtn) {
+    sfxGongBtn.addEventListener('click', () => {
+      sound.playStealGong();
+      sync.broadcast('PLAY_SOUND', { sound: 'STEAL_GONG' });
+    });
+  }
+
+  if (sfxFanfareBtn) {
+    sfxFanfareBtn.addEventListener('click', () => {
+      sound.playFanfare();
+      sync.broadcast('PLAY_SOUND', { sound: 'FANFARE' });
+    });
+  }
+
   if (sfxMuteBtn) {
     sfxMuteBtn.addEventListener('click', () => {
       const isMuted = sound.toggleMute();
@@ -1784,37 +1948,41 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // ADMIN PASSWORD SECURITY & SETTINGS (GETTER & SETTER)
   // ==========================================
-  const adminAuthOverlay = document.getElementById('adminAuthOverlay');
-  const adminPasswordAuthInput = document.getElementById('adminPasswordAuthInput');
-  const authErrorMsg = document.getElementById('authErrorMsg');
-  const adminUnlockBtn = document.getElementById('adminUnlockBtn');
-
-  const initialPasswordModal = document.getElementById('initialPasswordModal');
-  const useDefaultPasswordBtn = document.getElementById('useDefaultPasswordBtn');
-  const initialCustomPasswordInput = document.getElementById('initialCustomPasswordInput');
-  const saveCustomPasswordBtn = document.getElementById('saveCustomPasswordBtn');
-  const initialPassErrorMsg = document.getElementById('initialPassErrorMsg');
-  const skipPasswordSetupBtn = document.getElementById('skipPasswordSetupBtn');
-
-  const passwordSettingsBtn = document.getElementById('passwordSettingsBtn');
-  const passwordModal = document.getElementById('passwordModal');
-  const adminCurrentPasswordDisplay = document.getElementById('adminCurrentPasswordDisplay');
-  const copyAdminPasswordBtn = document.getElementById('copyAdminPasswordBtn');
-  const adminNewPasswordInput = document.getElementById('adminNewPasswordInput');
-  const saveAdminPasswordBtn = document.getElementById('saveAdminPasswordBtn');
-  const lockScreenNowBtn = document.getElementById('lockScreenNowBtn');
+  function updateAuthOverlayHint() {
+    const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
+    if (authOverlayHint) {
+      if (isSpecialRoom) {
+        authOverlayHint.innerHTML = `🌟 Event Room: <strong style="color:var(--gold-primary);">${SPECIAL_ROOM_CODE}</strong><br>Default Password: <code style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">${SPECIAL_ROOM_PASS}</code>`;
+      } else {
+        authOverlayHint.innerHTML = `Default password is: <code style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">feudadmin</code>`;
+      }
+    }
+  }
 
   function getAdminPassword() {
+    const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
+    if (isSpecialRoom) {
+      return localStorage.getItem('feud_admin_password_FSA-POLYU') || SPECIAL_ROOM_PASS;
+    }
     return localStorage.getItem('feud_admin_password') || 'feudadmin';
   }
 
   // Check password authentication & setup status
   function checkInitialPasswordPrompt() {
+    const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
     const isSetupDone = localStorage.getItem('feud_admin_password_setup_done') === 'true';
     const isAuthenticated = sessionStorage.getItem('feud_admin_auth') === 'true';
 
-    if (!isSetupDone) {
-      // First access: prompt host to configure password immediately (use default or custom)
+    updateAuthOverlayHint();
+
+    if (isSpecialRoom) {
+      if (!localStorage.getItem('feud_admin_password_FSA-POLYU')) {
+        localStorage.setItem('feud_admin_password_FSA-POLYU', SPECIAL_ROOM_PASS);
+      }
+    }
+
+    if (!isSetupDone && !isSpecialRoom) {
+      // First access on standard room: prompt host to configure password immediately
       if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
       if (initialPasswordModal) initialPasswordModal.classList.add('active');
     } else if (!isAuthenticated) {
@@ -1833,10 +2001,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (useDefaultPasswordBtn) {
     useDefaultPasswordBtn.addEventListener('click', () => {
-      localStorage.setItem('feud_admin_password', 'feudadmin');
+      const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
+      const defPass = isSpecialRoom ? SPECIAL_ROOM_PASS : 'feudadmin';
+      if (isSpecialRoom) {
+        localStorage.setItem('feud_admin_password_FSA-POLYU', defPass);
+      } else {
+        localStorage.setItem('feud_admin_password', defPass);
+      }
       localStorage.setItem('feud_admin_password_setup_done', 'true');
       sessionStorage.setItem('feud_admin_auth', 'true');
-      if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = 'feudadmin';
+      if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = defPass;
       if (initialPasswordModal) initialPasswordModal.classList.remove('active');
     });
   }
@@ -1850,7 +2024,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (initialPassErrorMsg) initialPassErrorMsg.style.display = 'none';
-      localStorage.setItem('feud_admin_password', pass);
+      const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
+      if (isSpecialRoom) {
+        localStorage.setItem('feud_admin_password_FSA-POLYU', pass);
+      } else {
+        localStorage.setItem('feud_admin_password', pass);
+      }
       localStorage.setItem('feud_admin_password_setup_done', 'true');
       sessionStorage.setItem('feud_admin_auth', 'true');
       if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = pass;
@@ -1875,7 +2054,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (adminUnlockBtn && adminPasswordAuthInput) {
     const attemptUnlock = () => {
       const inputPass = adminPasswordAuthInput.value.trim();
-      if (inputPass === getAdminPassword()) {
+      const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
+      const targetPass = getAdminPassword();
+      const isFsaMatch = isSpecialRoom && inputPass.toLowerCase() === SPECIAL_ROOM_PASS.toLowerCase();
+
+      if (inputPass === targetPass || isFsaMatch) {
         sessionStorage.setItem('feud_admin_auth', 'true');
         if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
         if (authErrorMsg) authErrorMsg.style.display = 'none';
@@ -1920,7 +2103,12 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Please enter a password of at least 4 characters.');
         return;
       }
-      localStorage.setItem('feud_admin_password', newPass);
+      const isSpecialRoom = (state.roomCode || '').toUpperCase() === SPECIAL_ROOM_CODE;
+      if (isSpecialRoom) {
+        localStorage.setItem('feud_admin_password_FSA-POLYU', newPass);
+      } else {
+        localStorage.setItem('feud_admin_password', newPass);
+      }
       if (adminCurrentPasswordDisplay) adminCurrentPasswordDisplay.value = newPass;
       if (adminNewPasswordInput) adminNewPasswordInput.value = '';
       alert('Admin password updated successfully!');

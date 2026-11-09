@@ -246,6 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (count >= 3) {
       sound.playTripleStrike();
+    } else if (count === 2) {
+      sound.playDoubleStrike();
     } else {
       sound.playStrike();
     }
@@ -293,7 +295,11 @@ document.addEventListener('DOMContentLoaded', () => {
     switch (type) {
       case 'DING': sound.playDing(); break;
       case 'STRIKE': sound.playStrike(); break;
+      case 'DOUBLE_STRIKE': sound.playDoubleStrike(); break;
       case 'TRIPLE_STRIKE': sound.playTripleStrike(); break;
+      case 'FACE_OFF': sound.playFaceOff(); break;
+      case 'THEME_PLAY': sound.playTheme(); break;
+      case 'THEME_STOP': sound.stopTheme(); break;
       case 'BUZZER': sound.playBuzzerHit(); break;
       case 'STEAL_GONG': sound.playStealGong(); break;
       case 'FANFARE': sound.playFanfare(); break;

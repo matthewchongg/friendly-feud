@@ -394,6 +394,18 @@
   border-color: var(--gold-primary);
 }
 
+.sfx-playing {
+  animation: sfxPulse 1.2s infinite alternate !important;
+  border-color: var(--gold-primary) !important;
+  background: linear-gradient(180deg, rgba(246, 185, 59, 0.4) 0%, rgba(230, 126, 34, 0.4) 100%) !important;
+  color: #fff !important;
+}
+
+@keyframes sfxPulse {
+  0% { box-shadow: 0 0 6px rgba(246, 185, 59, 0.3); transform: scale(1); }
+  100% { box-shadow: 0 0 18px rgba(246, 185, 59, 0.85); transform: scale(1.02); }
+}
+
 /* Spreadsheet Dropzone */
 .spreadsheet-dropzone {
   border: 2px dashed rgba(246, 185, 59, 0.5);

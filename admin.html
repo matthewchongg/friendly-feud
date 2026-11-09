@@ -26,6 +26,7 @@
         <input type="text" id="roomCodeInput" class="form-input" style="width:95px;padding:6px 8px;font-size:0.9rem;font-weight:800;text-transform:uppercase;" placeholder="CODE">
         <button id="setRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Set Custom Room Code">Set</button>
         <button id="randomRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Generate Clean Random Room Code">🎲 New</button>
+        <button id="fsaPresetBtn" class="icon-btn" style="padding:6px 10px;background:rgba(246,185,59,0.22);border-color:var(--gold-border);color:var(--gold-primary);font-weight:800;" title="Event Preset: FSA-POLYU (Password: fsa-polyu-pass)">🌟 FSA-POLYU</button>
         <button id="reconnectWebRtcBtn" class="icon-btn" style="padding:6px 10px;" title="Reconnect WebRTC Signaling">🔄 Reconnect</button>
       </div>
 
@@ -375,19 +376,44 @@
         </div>
       </section>
 
-      <!-- Audio Effects Soundboard -->
+      <!-- Philippine Family Feud Custom Soundboard -->
       <section class="control-card" id="soundFxCard">
-        <div class="card-title">
-          <span>🔊 Game Show SFX</span>
-          <button id="sfxMute" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;">🔊 Sound: On</button>
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span>🔊 Soundboard</span>
+            <span id="soundThemeBadge" class="badge badge-gold" style="font-size:0.75rem;">🇵🇭 Philippine Feud Edition</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button id="sfxThemeToggleBtn" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;border-color:rgba(255,255,255,0.2);" title="Toggle Soundboard Theme (Philippine / Classic)">Theme: 🇵🇭 PH</button>
+            <button id="sfxMute" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;">🔊 Sound: On</button>
+          </div>
         </div>
+
+        <!-- Theme Song Special Bar (Jeremiah Tiangco - Ano'ng Sabe) -->
+        <div style="background:rgba(246,185,59,0.12);border:1px solid rgba(246,185,59,0.35);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:0.85rem;font-weight:800;color:var(--gold-primary);text-transform:uppercase;font-family:var(--font-display);">
+              🎵 Theme Song: Jeremiah Tiangco - "Ano'ng Sabe"
+            </div>
+            <div id="themeSongStatus" style="font-size:0.78rem;color:var(--text-muted);">
+              Official Philippine Family Feud Theme Track
+            </div>
+          </div>
+          <button id="sfxThemeSongBtn" class="btn-primary" style="padding:8px 16px;font-size:0.88rem;display:flex;align-items:center;gap:6px;">
+            <span id="themePlayIcon">▶</span> <span id="themePlayText">Play Theme Song</span>
+          </button>
+        </div>
+
+        <!-- Sound FX Grid -->
         <div class="sound-fx-grid">
-          <button id="sfxDing" class="sfx-btn">🔔 Reveal Ding</button>
-          <button id="sfxStrike" class="sfx-btn">❌ Strike (X)</button>
-          <button id="sfxTripleStrike" class="sfx-btn">💥 Triple Strike</button>
-          <button id="sfxBuzzer" class="sfx-btn">🚨 Face-Off Buzzer</button>
-          <button id="sfxGong" class="sfx-btn">🔔 Steal Gong</button>
-          <button id="sfxFanfare" class="sfx-btn">🎺 Win Fanfare</button>
+          <button id="sfxDing" class="sfx-btn" title="Correct Answer Ding (correct)">🔔 Correct Ding</button>
+          <button id="sfxStrike" class="sfx-btn" title="Wrong Buzzer 1X">❌ 1 Strike (X)</button>
+          <button id="sfxDoubleStrike" class="sfx-btn" title="Wrong Buzzer 2X Repeated">❌❌ 2 Strikes (XX)</button>
+          <button id="sfxTripleStrike" class="sfx-btn" title="Wrong Buzzer 3X Repeated">❌❌❌ 3 Strikes (XXX)</button>
+          <button id="sfxFaceoff" class="sfx-btn" title="Official Face-Off Sting (face off)">⚔️ Face-Off Sting</button>
+          <button id="sfxFanfare" class="sfx-btn" title="Philippine Round Win Fanfare">🎺 Round Win</button>
+          <button id="sfxGong" class="sfx-btn" title="Steal Gong / Suspense">🔔 Steal Gong</button>
+          <button id="sfxBuzzer" class="sfx-btn" title="Player Buzzer Buzz">🚨 Face-Off Buzzer</button>
         </div>
       </section>
     </div>
@@ -776,8 +802,8 @@
       </div>
       <div id="authErrorMsg" style="display:none;color:#ff5252;font-size:0.85rem;margin-bottom:12px;font-weight:700;">Incorrect password. Please try again.</div>
       <button id="adminUnlockBtn" class="btn-primary" style="width:100%;padding:14px;font-size:1.05rem;">Unlock Admin Panel ➔</button>
-      <div style="margin-top:16px;font-size:0.8rem;color:var(--text-muted);">
-        Default password is: <code style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">feudadmin</code>
+      <div id="authOverlayHint" style="margin-top:16px;font-size:0.8rem;color:var(--text-muted);">
+        Default password is: <code id="authOverlayDefaultCode" style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">feudadmin</code>
       </div>
     </div>
   </div>
