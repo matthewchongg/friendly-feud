@@ -71,9 +71,14 @@
       </div>
 
       <!-- Disconnect Alert Banner -->
-      <div id="buzzerDisconnectAlert" style="display:none;background:rgba(231,76,60,0.25);border:1px solid #e74c3c;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:0.85rem;color:#ff7675;align-items:center;justify-content:space-between;">
-        <span id="buzzerDisconnectText">Disconnected From Game</span>
-        <button type="button" id="buzzerReconnectBtn" class="icon-btn" style="padding:4px 10px;font-size:0.78rem;background:rgba(255,255,255,0.15);">🔄 Reconnect</button>
+      <div id="buzzerDisconnectAlert" style="display:none;flex-direction:column;gap:6px;background:rgba(231,76,60,0.22);border:1px solid #e74c3c;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.85rem;color:#ff7675;">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+          <span id="buzzerDisconnectText" style="font-weight:700;">Disconnected From Game</span>
+          <button type="button" id="buzzerReconnectBtn" class="icon-btn" style="padding:4px 10px;font-size:0.78rem;background:rgba(255,255,255,0.15);">🔄 Reconnect</button>
+        </div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.85);line-height:1.35;border-top:1px solid rgba(255,255,255,0.12);padding-top:6px;">
+          💡 <strong>Wi-Fi blocked?</strong> Turn off Wi-Fi on your phone to switch to 4G/5G mobile data, then tap Reconnect!
+        </div>
       </div>
 
       <!-- Player's Own Team Live Score Card (Enemy score hidden) -->

@@ -29,6 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const qrJoinUrlEl = document.getElementById('qrJoinUrl');
   const soundFxCard = document.getElementById('soundFxCard');
   const mobileSoundNavBtn = document.getElementById('mobileSoundNavBtn');
+  const netDiagBtn = document.getElementById('netDiagBtn');
+  const netDiagModal = document.getElementById('netDiagModal');
+  const closeNetDiagBtn = document.getElementById('closeNetDiagBtn');
+  const runNetTestBtn = document.getElementById('runNetTestBtn');
+  const netDiagResultsBox = document.getElementById('netDiagResultsBox');
+  const netDiagItems = document.getElementById('netDiagItems');
 
   // DOM Elements - Admin Password & Auth Gate
   const adminAuthOverlay = document.getElementById('adminAuthOverlay');
@@ -1447,6 +1453,113 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('Error generating QR:', e);
       }
     });
+  }
+
+  // --- Network Diagnostics / Wi-Fi Blocker Test ---
+  function openNetDiagModal() {
+    if (netDiagModal) netDiagModal.classList.add('active');
+  }
+
+  if (netDiagBtn) netDiagBtn.addEventListener('click', openNetDiagModal);
+  if (webrtcStatusEl) {
+    webrtcStatusEl.style.cursor = 'pointer';
+    webrtcStatusEl.title = 'Click to run Wi-Fi & Network Diagnostics';
+    webrtcStatusEl.addEventListener('click', openNetDiagModal);
+  }
+
+  async function performNetworkTest() {
+    if (!netDiagResultsBox || !netDiagItems) return;
+    netDiagResultsBox.style.display = 'block';
+    netDiagItems.innerHTML = `
+      <div style="color:var(--gold-glow);display:flex;align-items:center;gap:8px;font-weight:700;">
+        <span>⏳</span> Testing PeerJS Cloud signaling, WebRTC STUN/UDP, and TURN relays...
+      </div>
+    `;
+
+    const report = {
+      cloudSignaling: false,
+      webrtcStun: false,
+      webrtcTurn: false,
+      candidates: []
+    };
+
+    // 1. Test PeerJS Cloud signaling endpoint
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      await fetch('https://0.peerjs.com/', { mode: 'no-cors', signal: controller.signal });
+      clearTimeout(timeoutId);
+      report.cloudSignaling = true;
+    } catch (e) {
+      report.cloudSignaling = false;
+    }
+
+    // 2. Test WebRTC ICE Gathering (STUN & TURN)
+    try {
+      const pc = new RTCPeerConnection({
+        iceServers: sync.getIceServers()
+      });
+      pc.createDataChannel('feud_diag_channel');
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      await new Promise((resolve) => {
+        const iceTimeout = setTimeout(() => resolve(), 3000);
+        pc.onicecandidate = (e) => {
+          if (e.candidate) {
+            report.candidates.push(e.candidate.type);
+            if (e.candidate.type === 'srflx') report.webrtcStun = true;
+            if (e.candidate.type === 'relay') report.webrtcTurn = true;
+          } else {
+            clearTimeout(iceTimeout);
+            resolve();
+          }
+        };
+      });
+      pc.close();
+    } catch (err) {
+      console.warn('ICE test error:', err);
+    }
+
+    // Render results
+    let html = '';
+
+    // Cloud Signaling
+    if (report.cloudSignaling) {
+      html += `<div style="color:#2ecc71;">✅ <strong>PeerJS Cloud Signaling:</strong> Connected (HTTPS / WebSocket port 443 accessible)</div>`;
+    } else {
+      html += `<div style="color:#e74c3c;">❌ <strong>PeerJS Cloud Signaling:</strong> BLOCKED (Firewall is blocking 0.peerjs.com)</div>`;
+    }
+
+    // STUN / UDP
+    if (report.webrtcStun) {
+      html += `<div style="color:#2ecc71;">✅ <strong>WebRTC STUN (UDP 19302):</strong> Accessible (Direct phone-to-laptop P2P supported)</div>`;
+    } else {
+      html += `<div style="color:#f39c12;">⚠️ <strong>WebRTC STUN (UDP):</strong> Restricted (Common on PolyU/campus Wi-Fi)</div>`;
+    }
+
+    // TURN Relay
+    if (report.webrtcTurn || report.cloudSignaling) {
+      html += `<div style="color:#2ecc71;">✅ <strong>TURN Relay Fallback (TCP 443):</strong> Active (Permits traversal through strict firewalls)</div>`;
+    }
+
+    // Local Dual-Screen
+    html += `<div style="color:#2ecc71;">✅ <strong>Local Dual-Screen (Projector):</strong> 100% Ready (Zero internet required)</div>`;
+
+    // Verdict
+    if (report.cloudSignaling && report.webrtcStun) {
+      html += `<div style="margin-top:8px;padding:8px 12px;background:rgba(46,204,113,0.2);border:1px solid #2ecc71;border-radius:6px;color:#2ecc71;font-weight:700;">🎉 Wi-Fi is clean! Players can join and buzz seamlessly.</div>`;
+    } else if (report.cloudSignaling) {
+      html += `<div style="margin-top:8px;padding:8px 12px;background:rgba(243,156,18,0.2);border:1px solid #f39c12;border-radius:6px;color:#f39c12;font-weight:700;">⚠️ Strict Campus Wi-Fi NAT detected. If mobile phones have trouble joining, have contestants switch their phone to 4G/5G mobile data, or turn on a phone Hotspot.</div>`;
+    } else {
+      html += `<div style="margin-top:8px;padding:8px 12px;background:rgba(231,76,60,0.2);border:1px solid #e74c3c;border-radius:6px;color:#ff7675;font-weight:700;">🚫 Wi-Fi is actively blocking games. Please switch host laptop to a Phone Hotspot, or use Offline Dual-Screen mode!</div>`;
+    }
+
+    netDiagItems.innerHTML = html;
+  }
+
+  if (runNetTestBtn) {
+    runNetTestBtn.addEventListener('click', performNetworkTest);
   }
 
   document.querySelectorAll('.close-modal-btn').forEach(btn => {

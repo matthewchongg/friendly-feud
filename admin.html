@@ -27,6 +27,7 @@
         <button id="setRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Set Custom Room Code">Set</button>
         <button id="randomRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Generate Clean Random Room Code">🎲 New</button>
         <button id="reconnectWebRtcBtn" class="icon-btn" style="padding:6px 10px;" title="Reconnect WebRTC Signaling">🔄 Reconnect</button>
+        <button id="netDiagBtn" class="icon-btn" style="padding:6px 10px;" title="Test if Wi-Fi has blocks">📡 Wi-Fi Check</button>
       </div>
 
       <button id="showQrBtn" class="icon-btn">📱 Buzzer QR</button>
@@ -438,6 +439,41 @@
         <a href="https://matthewchongg.github.io/friendly-feud/admin.html" target="_blank" style="color:var(--gold-primary);font-weight:700;">https://matthewchongg.github.io/friendly-feud/admin.html</a>
       </div>
       <button class="btn-primary close-modal-btn" style="width:100%;">Done</button>
+    </div>
+  </div>
+
+  <!-- Network Diagnostics & Wi-Fi Troubleshooter Modal -->
+  <div class="modal-overlay" id="netDiagModal">
+    <div class="modal-card" style="max-width:560px;">
+      <div class="modal-header">
+        <h3 class="modal-title">📡 Wi-Fi & Network Diagnostics</h3>
+        <button class="close-modal-btn" id="closeNetDiagBtn">&times;</button>
+      </div>
+
+      <div style="padding:16px 0;">
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:14px;line-height:1.4;">
+          Campus and enterprise Wi-Fi networks (such as <strong>PolyU Wi-Fi</strong> or <strong>eduroam</strong>) often block peer-to-peer WebSockets, UDP ports, or client-to-client connections. Test your connection below:
+        </p>
+
+        <button id="runNetTestBtn" class="btn-primary" style="width:100%;margin-bottom:14px;padding:10px 16px;font-size:0.95rem;">
+          ⚡ Test Current Wi-Fi Connection
+        </button>
+
+        <div id="netDiagResultsBox" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:14px;margin-bottom:16px;display:none;">
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:0.88rem;" id="netDiagItems">
+            <!-- Results populated by JavaScript -->
+          </div>
+        </div>
+
+        <div style="background:rgba(246,185,59,0.12);border:1px solid var(--gold-border);border-radius:10px;padding:14px;">
+          <h4 style="color:var(--gold-primary);font-size:0.95rem;margin-bottom:8px;font-family:var(--font-display);">🛠️ How to Play If Wi-Fi Has a Blocker:</h4>
+          <ol style="color:var(--text-light);font-size:0.85rem;line-height:1.55;margin-left:18px;margin-bottom:0;display:flex;flex-direction:column;gap:6px;">
+            <li><strong>📱 Method 1 (Recommended): Mobile Hotspot</strong><br>Turn on Personal Hotspot on one phone. Connect the host laptop to it. Cellular data has zero campus firewall restrictions!</li>
+            <li><strong>📶 Method 2: Contestants on 4G / 5G</strong><br>Contestants don't need Wi-Fi! Simply tell players to turn off Wi-Fi on their phones and use their mobile data (4G/5G) to open the buzzer.</li>
+            <li><strong>💻 Method 3: Offline / Dual-Screen Mode (0% Internet)</strong><br>Connect your laptop to the projector with HDMI (Press <code>Win + P</code> &rarr; <em>Extend</em>). Drag the Game Board to the projector screen and keep Admin on your laptop. Everything syncs locally with zero internet needed!</li>
+          </ol>
+        </div>
+      </div>
     </div>
   </div>
 
