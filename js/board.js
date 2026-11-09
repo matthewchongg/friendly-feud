@@ -378,10 +378,15 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'DING': sound.playDing(); break;
       case 'STRIKE':
       case 'DOUBLE_STRIKE':
-      case 'TRIPLE_STRIKE':
         sound.playStrike();
         break;
-      case 'FACE_OFF': sound.playFaceOff(); break;
+      case 'TRIPLE_STRIKE':
+        sound.playTripleStrike();
+        break;
+      case 'WALK_IN':
+      case 'FACE_OFF':
+        sound.playWalkIn();
+        break;
       case 'THEME_PLAY': sound.playTheme(); break;
       case 'THEME_STOP': sound.stopTheme(); break;
       case 'THEME_FADEOUT': sound.fadeOutTheme(1500); break;

@@ -267,10 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
       philippineThemeSongRow.style.display = special ? 'flex' : 'none';
     }
 
-    if (sfxGongBtn) {
-      sfxGongBtn.style.display = special ? 'none' : 'inline-flex';
-    }
-
     if (sfxThemeToggleBtn) {
       sfxThemeToggleBtn.style.display = 'none'; // Lock soundboard to active room mode; standard rooms cannot access FSA soundboard
     }
@@ -282,6 +278,15 @@ document.addEventListener('DOMContentLoaded', () => {
         soundThemeBadge.className = 'badge badge-gold';
       }
       qManager.setScope(special.code, special.questions, special.folders);
+
+      // FSA Special Soundboard configuration
+      if (sfxDingBtn) { sfxDingBtn.textContent = '🔔 Correct Ding'; sfxDingBtn.title = 'Correct Ding'; sfxDingBtn.style.display = 'inline-flex'; }
+      if (sfxStrikeBtn) { sfxStrikeBtn.textContent = '❌ Wrong Buzzer (X)'; sfxStrikeBtn.title = 'Wrong Buzzer (X)'; sfxStrikeBtn.style.display = 'inline-flex'; }
+      if (sfxFaceoffBtn) { sfxFaceoffBtn.textContent = '🚶 Walk In'; sfxFaceoffBtn.title = 'Walk In Music'; sfxFaceoffBtn.style.display = 'inline-flex'; }
+      if (sfxBuzzerBtn) { sfxBuzzerBtn.textContent = '🚨 Face-Off Buzzer'; sfxBuzzerBtn.title = 'Face-Off Buzzer'; sfxBuzzerBtn.style.display = 'inline-flex'; }
+      if (sfxFanfareBtn) { sfxFanfareBtn.textContent = '🎺 Round Win'; sfxFanfareBtn.title = 'Round Win Fanfare'; sfxFanfareBtn.style.display = 'inline-flex'; }
+      if (sfxTripleStrikeBtn) sfxTripleStrikeBtn.style.display = 'none';
+      if (sfxGongBtn) sfxGongBtn.style.display = 'none';
     } else {
       sound.setTheme('classic');
       if (soundThemeBadge) {
@@ -289,6 +294,15 @@ document.addEventListener('DOMContentLoaded', () => {
         soundThemeBadge.className = 'badge';
       }
       qManager.setScope(null);
+
+      // Classic Original Soundboard (Exactly 6 buttons)
+      if (sfxDingBtn) { sfxDingBtn.textContent = '🔔 Reveal Ding'; sfxDingBtn.title = 'Reveal Ding'; sfxDingBtn.style.display = 'inline-flex'; }
+      if (sfxStrikeBtn) { sfxStrikeBtn.textContent = '❌ Strike (X)'; sfxStrikeBtn.title = 'Strike (X)'; sfxStrikeBtn.style.display = 'inline-flex'; }
+      if (sfxTripleStrikeBtn) { sfxTripleStrikeBtn.textContent = '💥 Triple Strike'; sfxTripleStrikeBtn.title = 'Triple Strike'; sfxTripleStrikeBtn.style.display = 'inline-flex'; }
+      if (sfxBuzzerBtn) { sfxBuzzerBtn.textContent = '🚨 Face-Off Buzzer'; sfxBuzzerBtn.title = 'Face-Off Buzzer'; sfxBuzzerBtn.style.display = 'inline-flex'; }
+      if (sfxGongBtn) { sfxGongBtn.textContent = '🔔 Steal Gong'; sfxGongBtn.title = 'Steal Gong'; sfxGongBtn.style.display = 'inline-flex'; }
+      if (sfxFanfareBtn) { sfxFanfareBtn.textContent = '🎺 Win Fanfare'; sfxFanfareBtn.title = 'Win Fanfare'; sfxFanfareBtn.style.display = 'inline-flex'; }
+      if (sfxFaceoffBtn) sfxFaceoffBtn.style.display = 'none';
     }
 
     if (typeof updateSoundThemeUI === 'function') updateSoundThemeUI();
@@ -1589,11 +1603,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (netDiagBtn) netDiagBtn.addEventListener('click', openNetDiagModal);
-  if (webrtcStatusEl) {
-    webrtcStatusEl.style.cursor = 'pointer';
-    webrtcStatusEl.title = 'Click to run Wi-Fi & Network Diagnostics';
-    webrtcStatusEl.addEventListener('click', openNetDiagModal);
-  }
 
   async function performNetworkTest() {
     if (!netDiagResultsBox || !netDiagItems) return;
@@ -1775,15 +1784,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (sfxTripleStrikeBtn) {
     sfxTripleStrikeBtn.addEventListener('click', () => {
-      sound.playStrike();
-      sync.broadcast('PLAY_SOUND', { sound: 'STRIKE' });
+      sound.playTripleStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'TRIPLE_STRIKE' });
     });
   }
 
   if (sfxFaceoffBtn) {
     sfxFaceoffBtn.addEventListener('click', () => {
-      sound.playFaceOff();
-      sync.broadcast('PLAY_SOUND', { sound: 'FACE_OFF' });
+      sound.playWalkIn();
+      sync.broadcast('PLAY_SOUND', { sound: 'WALK_IN' });
     });
   }
 

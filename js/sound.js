@@ -23,7 +23,8 @@ class SoundEngine {
       ding: 'audio/ph_correct_ding_clean.wav',
       strike: 'audio/ph_wrong_buzzer_clean.wav',
       buzzer: 'audio/ph_faceoff_buzz_clean.wav',
-      faceoff: 'audio/ph_faceoff_clean.wav',
+      faceoff: 'audio/ph_walkin.m4a',
+      walkin: 'audio/ph_walkin.m4a',
       fanfare: 'audio/ph_roundwin_clean.wav',
       theme: 'audio/ph_theme_anongsabe.mp3'
     };
@@ -114,7 +115,8 @@ class SoundEngine {
       case 'ding': this._synthDing(); break;
       case 'strike': this._synthStrike(); break;
       case 'buzzer': this._synthBuzzerHit(); break;
-      case 'faceoff': this._synthFanfare(); break;
+      case 'faceoff':
+      case 'walkin': this._synthFanfare(); break;
       case 'fanfare': this._synthFanfare(); break;
     }
   }
@@ -246,22 +248,41 @@ class SoundEngine {
   }
 
   /**
-   * Triple Strike (XXX) - Keep 1 buzz in (no repeat)
+   * Triple Strike (XXX)
+   * In Philippine theme: single authentic wrong buzzer
+   * In Classic theme: authentic 3-pulse buzzer
    */
   playTripleStrike() {
-    this.playStrike();
+    if (this.muted) return;
+    if (this.soundTheme === 'philippines') {
+      this.playStrike();
+    } else {
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      this._createBuzzPulse(now, 0.2);
+      this._createBuzzPulse(now + 0.24, 0.2);
+      this._createBuzzPulse(now + 0.48, 0.55);
+    }
   }
 
   /**
-   * Face-Off Cue sound (face off)
+   * Walk In Music (FSA Special entrance theme / Walk In sting)
    */
-  playFaceOff() {
+  playWalkIn() {
     if (this.muted) return;
     if (this.soundTheme === 'philippines') {
-      this.playAudioFile('faceoff', 0.95);
+      this.playAudioFile('walkin', 0.95);
     } else {
       this._synthFanfare();
     }
+  }
+
+  /**
+   * Face-Off Cue sound (face off / walk in)
+   */
+  playFaceOff() {
+    this.playWalkIn();
   }
 
   /**

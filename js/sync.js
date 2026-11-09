@@ -320,20 +320,35 @@ class SyncEngine {
       this.peer.on('disconnected', () => {
         if (this._isDestroying || !this.peer || this.peer.destroyed) return;
         // CRITICAL: If the host peer was never successfully online, do not fire reconnect!
-        // Unsuccessful initial connection errors are handled exclusively by error handler above.
         if (!this.isOnline) return;
 
         this.isOnline = false;
         this._isConnecting = false;
-        console.warn('[Host] PeerJS disconnected from server, re-establishing host room in 2.5s...');
+        console.warn('[Host] PeerJS disconnected from server, attempting reconnect...');
         if (this.statusCallback) this.statusCallback({ status: 'disconnected', message: 'Reconnecting to PeerJS cloud...' });
         
-        // Re-initialize host cleanly instead of peer.reconnect()
+        // Use peer.reconnect() to preserve existing ID without token collision
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.reconnectTimer = setTimeout(() => {
           if (this._isDestroying) return;
+          if (this.peer && !this.peer.destroyed) {
+            try {
+              console.log('[Host] Reconnecting existing peer session...');
+              this.peer.reconnect();
+
+              // Fallback: If still not online after 4s, re-initialize cleanly
+              this.reconnectTimer = setTimeout(() => {
+                if (this._isDestroying || this.isOnline) return;
+                console.warn('[Host] peer.reconnect() timed out, re-initializing fresh host peer...');
+                this.initHostPeer(this.roomCode, this.statusCallback);
+              }, 4000);
+              return;
+            } catch (e) {
+              console.warn('[Host] peer.reconnect() failed:', e);
+            }
+          }
           this.initHostPeer(this.roomCode, this.statusCallback);
-        }, 2500);
+        }, 1500);
       });
     } catch (e) {
       this._isConnecting = false;
