@@ -23,7 +23,7 @@ class SoundEngine {
       ding: 'audio/ph_correct_ding_clean.wav',
       strike: 'audio/ph_wrong_buzzer_clean.wav',
       buzzer: 'audio/ph_faceoff_buzz_clean.wav',
-      faceoff: 'audio/ph_faceoff_buzz_clean.wav',
+      faceoff: 'audio/ph_faceoff_clean.wav',
       fanfare: 'audio/ph_roundwin_clean.wav',
       theme: 'audio/ph_theme_anongsabe.mp3'
     };
@@ -113,8 +113,8 @@ class SoundEngine {
     switch (key) {
       case 'ding': this._synthDing(); break;
       case 'strike': this._synthStrike(); break;
-      case 'buzzer':
-      case 'faceoff': this._synthBuzzerHit(); break;
+      case 'buzzer': this._synthBuzzerHit(); break;
+      case 'faceoff': this._synthFanfare(); break;
       case 'fanfare': this._synthFanfare(); break;
     }
   }
@@ -260,7 +260,7 @@ class SoundEngine {
     if (this.soundTheme === 'philippines') {
       this.playAudioFile('faceoff', 0.95);
     } else {
-      this._synthBuzzerHit();
+      this._synthFanfare();
     }
   }
 
