@@ -418,7 +418,7 @@
             <span id="soundThemeBadge" class="badge" style="font-size:0.75rem;">🎹 Classic Game Show SFX</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center;">
-            <button id="sfxThemeToggleBtn" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;border-color:rgba(255,255,255,0.2);" title="Toggle Soundboard Theme (Philippine / Classic)">Theme: 🎹 Classic</button>
+            <button id="sfxThemeToggleBtn" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;border-color:rgba(255,255,255,0.2);display:none;" title="Toggle Soundboard Theme (Philippine / Classic)">Theme: 🎹 Classic</button>
             <button id="sfxMute" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;">🔊 Sound: On</button>
           </div>
         </div>
@@ -866,9 +866,9 @@
   <!-- Fullscreen Admin Password Gate Overlay -->
   <div id="adminAuthOverlay" class="admin-auth-overlay" style="display:none;">
     <div class="admin-auth-card">
-      <div class="auth-lock-icon" style="font-size:3rem;margin-bottom:12px;">🔒</div>
-      <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--gold-primary);margin-bottom:8px;">Host Panel Protected</h2>
-      <p style="color:var(--text-muted);font-size:0.92rem;margin-bottom:20px;line-height:1.5;">Enter the Admin Password to supervise this Family Feud game session.</p>
+      <div class="auth-lock-icon" id="authLockIcon" style="font-size:3rem;margin-bottom:12px;">🔒</div>
+      <h2 id="authOverlayTitle" style="font-family:var(--font-display);font-size:1.8rem;color:var(--gold-primary);margin-bottom:8px;">Host Panel Protected</h2>
+      <p id="authOverlayDesc" style="color:var(--text-muted);font-size:0.92rem;margin-bottom:20px;line-height:1.5;">Enter the Admin Password to supervise this Family Feud game session.</p>
       
       <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:14px;">
         <input type="password" id="adminPasswordAuthInput" class="form-input" placeholder="Enter password..." style="flex:1;text-align:center;font-size:1.15rem;letter-spacing:1px;padding:12px;">

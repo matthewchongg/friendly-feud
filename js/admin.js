@@ -218,7 +218,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const roomFromUrl = urlParams.get('room');
 
-  initRoom(roomFromUrl);
+  // If no room is specified in URL query, default to a fresh clean standard room unless user specifically requested a room
+  let targetInitialCode = roomFromUrl;
+  if (!targetInitialCode) {
+    const isSpecialSaved = state.roomCode && ((typeof window.getSpecialRoomConfig === 'function' && window.getSpecialRoomConfig(state.roomCode)) || state.roomCode === 'FSA-POLYU');
+    const isSpecialAuth = isSpecialSaved && (sessionStorage.getItem(`feud_admin_auth_${state.roomCode}`) === 'true');
+    if (isSpecialSaved && !isSpecialAuth) {
+      targetInitialCode = generateRandomRoomCode();
+    } else {
+      targetInitialCode = state.roomCode || generateRandomRoomCode();
+    }
+  }
+
+  initRoom(targetInitialCode);
   buildAnswersInputForm();
   renderDynamicRoundsBar();
   populateFolderDropdowns();
@@ -264,13 +276,16 @@ document.addEventListener('DOMContentLoaded', () => {
       sfxGongBtn.style.display = special ? 'none' : 'inline-flex';
     }
 
+    if (sfxThemeToggleBtn) {
+      sfxThemeToggleBtn.style.display = 'none'; // Lock soundboard to active room mode; standard rooms cannot access FSA soundboard
+    }
+
     if (special) {
       sound.setTheme('philippines');
       if (soundThemeBadge) {
         soundThemeBadge.textContent = '🇵🇭 Philippine Feud Edition';
         soundThemeBadge.className = 'badge badge-gold';
       }
-      if (sfxThemeToggleBtn) sfxThemeToggleBtn.textContent = 'Theme: 🇵🇭 PH';
       qManager.setScope(special.code, special.questions, special.folders);
     } else {
       sound.setTheme('classic');
@@ -278,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
         soundThemeBadge.textContent = '🎹 Classic Game Show SFX';
         soundThemeBadge.className = 'badge';
       }
-      if (sfxThemeToggleBtn) sfxThemeToggleBtn.textContent = 'Theme: 🎹 Classic';
       qManager.setScope(null);
     }
 
@@ -1719,7 +1733,7 @@ document.addEventListener('DOMContentLoaded', () => {
       soundThemeBadge.className = curTheme === 'philippines' ? 'badge badge-gold' : 'badge';
     }
     if (sfxThemeToggleBtn) {
-      sfxThemeToggleBtn.textContent = curTheme === 'philippines' ? 'Theme: 🇵🇭 PH' : 'Theme: 🎹 Classic';
+      sfxThemeToggleBtn.style.display = 'none';
     }
     if (sfxGongBtn) {
       sfxGongBtn.style.display = curTheme === 'philippines' ? 'none' : 'inline-flex';
@@ -2249,10 +2263,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   function updateAuthOverlayHint() {
     const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
-    if (authOverlayHint) {
-      if (special) {
-        authOverlayHint.innerHTML = `<span style="color:var(--text-muted);font-style:italic;">🔒 Protected Event Room: <strong style="color:var(--gold-primary);">${special.code}</strong>. Enter admin password to unlock.</span>`;
-      } else {
+    const authOverlayTitle = document.getElementById('authOverlayTitle');
+    const authOverlayDesc = document.getElementById('authOverlayDesc');
+    const authLockIcon = document.getElementById('authLockIcon');
+    const adminUnlockBtn = document.getElementById('adminUnlockBtn');
+
+    if (special) {
+      if (authLockIcon) authLockIcon.textContent = '🇵🇭 🔒';
+      if (authOverlayTitle) authOverlayTitle.innerHTML = `Protected Event Room: <span style="color:var(--gold-primary);">${special.code}</span>`;
+      if (authOverlayDesc) authOverlayDesc.textContent = `Enter the admin password for event room "${special.code}" to supervise this Philippine Family Feud session.`;
+      if (adminUnlockBtn) adminUnlockBtn.textContent = `Unlock ${special.code} Panel ➔`;
+      if (authOverlayHint) {
+        authOverlayHint.innerHTML = `<span style="color:var(--text-muted);">🔒 Protected Event Room: <strong style="color:var(--gold-primary);">${special.code}</strong>. Password: <code style="color:var(--gold-primary);background:rgba(0,0,0,0.4);padding:2px 6px;border-radius:4px;font-weight:800;">${special.password}</code></span>`;
+      }
+    } else {
+      if (authLockIcon) authLockIcon.textContent = '🔒';
+      if (authOverlayTitle) authOverlayTitle.textContent = 'Host Panel Protected';
+      if (authOverlayDesc) authOverlayDesc.textContent = 'Enter the Admin Password to supervise this Family Feud game session.';
+      if (adminUnlockBtn) adminUnlockBtn.textContent = 'Unlock Admin Panel ➔';
+      if (authOverlayHint) {
         authOverlayHint.innerHTML = `Default password is: <code style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">feudadmin</code>`;
       }
     }
@@ -2269,16 +2298,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Check password authentication & setup status
   function checkInitialPasswordPrompt() {
     const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
-    const isSetupDone = localStorage.getItem('feud_admin_password_setup_done') === 'true';
-    const isAuth = special
+    const isSpecialAuth = special
       ? (sessionStorage.getItem(`feud_admin_auth_${special.code}`) === 'true')
-      : (sessionStorage.getItem('feud_admin_auth') === 'true');
+      : false;
 
     updateAuthOverlayHint();
 
+    // SPECIAL EVENT ROOM (e.g. FSA-POLYU)
     if (special) {
       if (initialPasswordModal) initialPasswordModal.classList.remove('active');
-      if (!isAuth) {
+      if (!isSpecialAuth) {
         if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
         if (adminPasswordAuthInput) {
           setTimeout(() => adminPasswordAuthInput.focus(), 100);
@@ -2289,20 +2318,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // STANDARD ROOMS:
+    // Standard rooms NEVER show the blocking lock screen!
+    if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
+
+    // Show initial password setup modal ("Set Admin Protection") only if not yet set up
+    const isSetupDone = localStorage.getItem('feud_admin_password_setup_done') === 'true';
     if (!isSetupDone) {
-      // First access on standard room: prompt host to configure password immediately
-      if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
       if (initialPasswordModal) initialPasswordModal.classList.add('active');
-    } else if (!isAuth) {
-      // Setup already completed, but this session is locked: prompt passkey overlay
-      if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
-      if (initialPasswordModal) initialPasswordModal.classList.remove('active');
-      if (adminPasswordAuthInput) {
-        setTimeout(() => adminPasswordAuthInput.focus(), 100);
-      }
     } else {
-      // Authenticated in current session
-      if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
       if (initialPasswordModal) initialPasswordModal.classList.remove('active');
     }
   }

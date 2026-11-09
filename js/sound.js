@@ -257,15 +257,23 @@ class SoundEngine {
    */
   playFaceOff() {
     if (this.muted) return;
-    this.playAudioFile('buzzer', 0.95);
+    if (this.soundTheme === 'philippines') {
+      this.playAudioFile('faceoff', 0.95);
+    } else {
+      this._synthBuzzerHit();
+    }
   }
 
   /**
-   * Buzzer hit (when contestant buzzes in - new face-off buzzer audio)
+   * Buzzer hit (when contestant buzzes in)
    */
   playBuzzerHit() {
     if (this.muted) return;
-    this.playAudioFile('buzzer', 0.95);
+    if (this.soundTheme === 'philippines') {
+      this.playAudioFile('buzzer', 0.95);
+    } else {
+      this._synthBuzzerHit();
+    }
   }
 
   /**

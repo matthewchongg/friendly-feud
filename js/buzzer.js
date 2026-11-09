@@ -130,6 +130,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (joinView) joinView.style.display = 'none';
     if (buzzerView) buzzerView.style.display = 'flex';
 
+    const isSpecial = (room || '').toUpperCase() === 'FSA-POLYU';
+    sound.setTheme(isSpecial ? 'philippines' : 'classic');
+
     if (playerDisplayName) playerDisplayName.textContent = playerInfo.playerName;
     if (buzzerRoomCodeTag) buzzerRoomCodeTag.textContent = room;
     updatePlayerTeamDisplay();
