@@ -121,6 +121,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (timerBadgeEl) timerBadgeEl.classList.add('danger');
         break;
 
+      case 'TIMER_STOP':
+        if (timerBadgeEl) timerBadgeEl.style.display = 'none';
+        break;
+
       case 'FACE_OFF_BUZZ':
         sound.playBuzzerHit();
         showBuzzBanner(msg.payload);
@@ -176,6 +180,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Phase Banner logic
     renderPhaseBanner(s);
+
+    // Hide timer badge if not running or steal decision concluded
+    if (!s.timer || !s.timer.running || (s.phase !== 'STEAL' && s.phase !== 'BOARD_PLAY')) {
+      if (timerBadgeEl) timerBadgeEl.style.display = 'none';
+    }
 
     // Winner modal check
     if (s.phase === 'GRAND_WINNER' && s.winner) {
@@ -374,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'FACE_OFF': sound.playFaceOff(); break;
       case 'THEME_PLAY': sound.playTheme(); break;
       case 'THEME_STOP': sound.stopTheme(); break;
+      case 'THEME_FADEOUT': sound.fadeOutTheme(1500); break;
       case 'BUZZER': sound.playBuzzerHit(); break;
       case 'STEAL_GONG':
         if (sound.getTheme() !== 'philippines' && (state.roomCode || '').toUpperCase() !== 'FSA-POLYU') {

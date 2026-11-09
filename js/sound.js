@@ -150,6 +150,10 @@ class SoundEngine {
   }
 
   stopTheme() {
+    if (this._fadeInterval) {
+      clearInterval(this._fadeInterval);
+      this._fadeInterval = null;
+    }
     if (this.themeAudio) {
       try {
         this.themeAudio.pause();
@@ -159,6 +163,42 @@ class SoundEngine {
     }
     this.isThemePlaying = false;
     if (typeof this.onThemeStateChange === 'function') this.onThemeStateChange(false);
+  }
+
+  /**
+   * Smoothly fade out theme song and pause
+   */
+  fadeOutTheme(durationMs = 1500, onDone) {
+    if (!this.themeAudio || !this.isThemePlaying) {
+      if (typeof onDone === 'function') onDone();
+      return;
+    }
+    if (this._fadeInterval) clearInterval(this._fadeInterval);
+    const startVol = this.themeAudio.volume || 0.85;
+    const steps = 30;
+    const stepTime = durationMs / steps;
+    const volStep = startVol / steps;
+    let step = 0;
+
+    this._fadeInterval = setInterval(() => {
+      step++;
+      if (this.themeAudio) {
+        this.themeAudio.volume = Math.max(0, startVol - (volStep * step));
+      }
+      if (step >= steps) {
+        clearInterval(this._fadeInterval);
+        this._fadeInterval = null;
+        if (this.themeAudio) {
+          try {
+            this.themeAudio.pause();
+            this.themeAudio.volume = 0.85; // restore normal volume for next play
+          } catch(e) {}
+        }
+        this.isThemePlaying = false;
+        if (typeof this.onThemeStateChange === 'function') this.onThemeStateChange(false);
+        if (typeof onDone === 'function') onDone();
+      }
+    }, stepTime);
   }
 
   toggleTheme() {
@@ -217,11 +257,7 @@ class SoundEngine {
    */
   playFaceOff() {
     if (this.muted) return;
-    if (this.soundTheme === 'philippines') {
-      this.playAudioFile('buzzer', 0.95);
-    } else {
-      this._synthBuzzerHit();
-    }
+    this.playAudioFile('buzzer', 0.95);
   }
 
   /**
@@ -229,11 +265,7 @@ class SoundEngine {
    */
   playBuzzerHit() {
     if (this.muted) return;
-    if (this.soundTheme === 'philippines') {
-      this.playAudioFile('buzzer', 0.95);
-    } else {
-      this._synthBuzzerHit();
-    }
+    this.playAudioFile('buzzer', 0.95);
   }
 
   /**

@@ -85,6 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const secondPlayerText = document.getElementById('secondPlayerText');
   const faceoffStatusText = document.getElementById('faceoffStatusText');
 
+  const awardControlTeam1Btn = document.getElementById('awardControlTeam1Btn');
+  const awardControlTeam2Btn = document.getElementById('awardControlTeam2Btn');
+  const awardControlTeam1Name = document.getElementById('awardControlTeam1Name');
+  const awardControlTeam2Name = document.getElementById('awardControlTeam2Name');
   const ruleDirectWinBtn = document.getElementById('ruleDirectWinBtn');
   const rulePassOpponentBtn = document.getElementById('rulePassOpponentBtn');
   const ruleDefaultControlBtn = document.getElementById('ruleDefaultControlBtn');
@@ -194,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Sound FX & Philippine Family Feud Soundboard elements
   const sfxThemeSongBtn = document.getElementById('sfxThemeSongBtn');
+  const sfxThemeFadeBtn = document.getElementById('sfxThemeFadeBtn');
   const themePlayIcon = document.getElementById('themePlayIcon');
   const themePlayText = document.getElementById('themePlayText');
   const themeSongStatus = document.getElementById('themeSongStatus');
@@ -773,8 +778,19 @@ document.addEventListener('DOMContentLoaded', () => {
       armBuzzerBtn.className = state.faceOff.buzzerArmed ? 'btn-danger' : 'btn-primary';
     }
 
-    // Controlling Team dropdown
-    if (controllingTeamSelect) {
+    // Controlling Team display & Award buttons
+    if (awardControlTeam1Name) awardControlTeam1Name.textContent = state.team1.name || 'Team 1';
+    if (awardControlTeam2Name) awardControlTeam2Name.textContent = state.team2.name || 'Team 2';
+    if (awardControlTeam1Btn) {
+      awardControlTeam1Btn.style.outline = state.controllingTeam === 1 ? '3px solid #fff' : 'none';
+      awardControlTeam1Btn.style.boxShadow = state.controllingTeam === 1 ? '0 0 16px rgba(46,204,113,0.8)' : 'none';
+    }
+    if (awardControlTeam2Btn) {
+      awardControlTeam2Btn.style.outline = state.controllingTeam === 2 ? '3px solid #fff' : 'none';
+      awardControlTeam2Btn.style.boxShadow = state.controllingTeam === 2 ? '0 0 16px rgba(255,82,82,0.8)' : 'none';
+    }
+
+    if (controllingTeamSelect && controllingTeamSelect.options && controllingTeamSelect.options.length > 2) {
       controllingTeamSelect.options[1].textContent = `1. ${state.team1.name}`;
       controllingTeamSelect.options[2].textContent = `2. ${state.team2.name}`;
       controllingTeamSelect.value = state.controllingTeam || '';
@@ -1040,8 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
     armBuzzerBtn.addEventListener('click', () => {
       state.faceOff.buzzerArmed = !state.faceOff.buzzerArmed;
       if (state.faceOff.buzzerArmed) {
-        sound.playFaceOff();
-        sync.broadcast('PLAY_SOUND', { sound: 'FACE_OFF' });
+        // Armed buzzers silently (no face-off sting)
         state.faceOff.buzzWinner = null;
         state.faceOff.secondBuzz = null;
 
@@ -1071,18 +1086,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Award Board Control Directly to Team
+  function giveBoardControl(teamNumber) {
+    state.controllingTeam = teamNumber;
+    state.phase = 'BOARD_PLAY';
+    state.strikes = 0;
+    state.faceOff.buzzerArmed = false;
+    const teamName = teamNumber === 1 ? state.team1.name : state.team2.name;
+    state.faceOff.statusText = `👑 Board Control awarded to ${teamName}! Playing the board.`;
+    broadcastState();
+    renderUI();
+  }
+
+  if (awardControlTeam1Btn) {
+    awardControlTeam1Btn.addEventListener('click', () => giveBoardControl(1));
+  }
+
+  if (awardControlTeam2Btn) {
+    awardControlTeam2Btn.addEventListener('click', () => giveBoardControl(2));
+  }
+
   if (ruleDirectWinBtn) {
     ruleDirectWinBtn.addEventListener('click', () => {
       if (!state.faceOff.buzzWinner) {
         alert('No player has buzzed in yet!');
         return;
       }
-      const winTeam = state.faceOff.buzzWinner.team;
-      state.controllingTeam = winTeam;
-      state.phase = 'BOARD_PLAY';
-      state.faceOff.statusText = `#1 Answer Revealed! ${winTeam === 1 ? state.team1.name : state.team2.name} gains control.`;
-      broadcastState();
-      renderUI();
+      giveBoardControl(state.faceOff.buzzWinner.team);
     });
   }
 
@@ -1106,12 +1136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('No player has buzzed in yet!');
         return;
       }
-      const defTeam = state.faceOff.buzzWinner.team;
-      state.controllingTeam = defTeam;
-      state.phase = 'BOARD_PLAY';
-      state.faceOff.statusText = `Neither guessed on board! Control defaults to ${defTeam === 1 ? state.team1.name : state.team2.name}.`;
-      broadcastState();
-      renderUI();
+      giveBoardControl(state.faceOff.buzzWinner.team);
     });
   }
 
@@ -1233,6 +1258,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (stealSuccessBtn) {
     stealSuccessBtn.addEventListener('click', () => {
+      // Clear and remove timer immediately upon steal decision
+      clearInterval(timerInterval);
+      state.timer.running = false;
+      state.timer.remaining = 0;
+      if (timerDigitsEl) timerDigitsEl.textContent = '0s';
+      sync.broadcast('TIMER_STOP', {});
+
       const stealingTeam = state.steal.stealingTeam || (state.controllingTeam === 1 ? 2 : 1);
       const points = state.bank || 0;
 
@@ -1255,6 +1287,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (stealFailedBtn) {
     stealFailedBtn.addEventListener('click', () => {
+      // Clear and remove timer immediately upon steal decision
+      clearInterval(timerInterval);
+      state.timer.running = false;
+      state.timer.remaining = 0;
+      if (timerDigitsEl) timerDigitsEl.textContent = '0s';
+      sync.broadcast('TIMER_STOP', {});
+
       const originalTeam = state.steal.controllingTeam || state.controllingTeam || 1;
       const points = state.bank || 0;
 
@@ -1647,6 +1686,13 @@ document.addEventListener('DOMContentLoaded', () => {
     sfxThemeSongBtn.addEventListener('click', () => {
       const isPlaying = sound.toggleTheme();
       sync.broadcast('PLAY_SOUND', { sound: isPlaying ? 'THEME_PLAY' : 'THEME_STOP' });
+    });
+  }
+
+  if (sfxThemeFadeBtn) {
+    sfxThemeFadeBtn.addEventListener('click', () => {
+      sound.fadeOutTheme(1500);
+      sync.broadcast('PLAY_SOUND', { sound: 'THEME_FADEOUT' });
     });
   }
 

@@ -150,18 +150,15 @@
           </div>
         </div>
 
-        <!-- Face-off Rules Decisions -->
+        <!-- Face-off Board Control Award -->
         <div class="faceoff-actions-bar">
-          <div style="font-size:0.85rem;font-weight:800;color:var(--gold-glow);margin-bottom:2px;font-family:var(--font-display);">DECIDE BOARD CONTROL (Rules & Mechanics):</div>
-          <div class="action-row">
-            <button id="ruleDirectWinBtn" class="btn-primary" style="flex:1;font-size:0.85rem;padding:9px 12px;">
-              1. Revealed #1 Answer (Direct Win of Control)
+          <div style="font-size:0.85rem;font-weight:800;color:var(--gold-glow);margin-bottom:8px;font-family:var(--font-display);">DECIDE BOARD CONTROL:</div>
+          <div class="action-row" style="display:flex;gap:12px;">
+            <button id="awardControlTeam1Btn" class="btn-primary" style="flex:1;font-size:0.95rem;padding:12px 14px;background:#2ecc71;border-color:#27ae60;color:#032310;font-weight:800;cursor:pointer;">
+              👑 Give Control to <span id="awardControlTeam1Name">Team 1</span>
             </button>
-            <button id="rulePassOpponentBtn" class="btn-secondary" style="flex:1;font-size:0.85rem;padding:9px 12px;">
-              2. On Board but not #1 (Pass to Player 2 to Beat Rank)
-            </button>
-            <button id="ruleDefaultControlBtn" class="btn-secondary" style="flex:1;font-size:0.85rem;padding:9px 12px;">
-              3. Neither on Board (Default Control to 1st Team)
+            <button id="awardControlTeam2Btn" class="btn-primary" style="flex:1;font-size:0.95rem;padding:12px 14px;background:#ff5252;border-color:#e74c3c;color:#fff;font-weight:800;cursor:pointer;">
+              👑 Give Control to <span id="awardControlTeam2Name">Team 2</span>
             </button>
           </div>
         </div>
@@ -175,20 +172,13 @@
         </div>
 
         <div class="board-play-grid">
-          <!-- Controlling Team & Turn -->
-          <div style="background:rgba(0,0,0,0.35);padding:12px 16px;border-radius:var(--radius-sm);">
-            <div style="font-size:0.85rem;font-weight:800;color:var(--gold-glow);margin-bottom:6px;font-family:var(--font-display);">Controlling Team:</div>
-            <select id="controllingTeamSelect" class="form-input">
-              <option value="">-- No Team In Control --</option>
-              <option value="1">1. Team 1</option>
-              <option value="2">2. Team 2</option>
-            </select>
-
-            <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:0.85rem;color:var(--text-muted);font-weight:700;">Current Turn:</span>
-              <strong id="turnPlayerDisplay" style="color:#2ecc71;font-size:0.95rem;">None</strong>
-              <button id="nextPlayerTurnBtn" class="icon-btn" style="padding:4px 10px;font-size:0.8rem;">Next Player ➔</button>
+          <!-- Player Turn Rotation -->
+          <div style="background:rgba(0,0,0,0.35);padding:14px 16px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div>
+              <div style="font-size:0.8rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Current Contestant Turn:</div>
+              <strong id="turnPlayerDisplay" style="color:#2ecc71;font-size:1.15rem;font-family:var(--font-display);">None</strong>
             </div>
+            <button id="nextPlayerTurnBtn" class="icon-btn" style="padding:6px 14px;font-size:0.85rem;font-weight:700;">Next Player ➔</button>
           </div>
 
           <!-- Turn Timer (20 Seconds Rule) -->
@@ -443,17 +433,20 @@
               Official Philippine Family Feud Theme Track
             </div>
           </div>
-          <button id="sfxThemeSongBtn" class="btn-primary" style="padding:8px 16px;font-size:0.88rem;display:flex;align-items:center;gap:6px;">
-            <span id="themePlayIcon">▶</span> <span id="themePlayText">Play Theme Song</span>
-          </button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button id="sfxThemeSongBtn" class="btn-primary" style="padding:8px 16px;font-size:0.88rem;display:flex;align-items:center;gap:6px;">
+              <span id="themePlayIcon">▶</span> <span id="themePlayText">Play Theme Song</span>
+            </button>
+            <button id="sfxThemeFadeBtn" class="btn-secondary" style="padding:8px 14px;font-size:0.88rem;display:flex;align-items:center;gap:6px;border-color:rgba(246,185,59,0.4);" title="Fade out theme song over 1.5s and pause">
+              <span>🔉</span> <span>Fade Out</span>
+            </button>
+          </div>
         </div>
 
         <!-- Sound FX Grid -->
         <div class="sound-fx-grid">
           <button id="sfxDing" class="sfx-btn" title="Correct Answer Ding">🔔 Correct Ding</button>
-          <button id="sfxStrike" class="sfx-btn" title="Wrong Buzzer (X)">❌ 1 Strike (X)</button>
-          <button id="sfxDoubleStrike" class="sfx-btn" title="Wrong Buzzer (XX)">❌❌ 2 Strikes (XX)</button>
-          <button id="sfxTripleStrike" class="sfx-btn" title="Wrong Buzzer (XXX)">❌❌❌ 3 Strikes (XXX)</button>
+          <button id="sfxStrike" class="sfx-btn" title="Wrong Buzzer (X)">❌ Wrong Buzzer (X)</button>
           <button id="sfxFaceoff" class="sfx-btn" title="Face-Off Sting">⚔️ Face-Off Sting</button>
           <button id="sfxFanfare" class="sfx-btn" title="Round Win Fanfare">🎺 Round Win</button>
           <button id="sfxGong" class="sfx-btn" title="Steal Gong / Suspense">🔔 Steal Gong</button>
