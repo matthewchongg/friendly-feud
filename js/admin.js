@@ -29,6 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const qrJoinUrlEl = document.getElementById('qrJoinUrl');
   const soundFxCard = document.getElementById('soundFxCard');
   const mobileSoundNavBtn = document.getElementById('mobileSoundNavBtn');
+  const adminSettingsBar = document.getElementById('adminSettingsBar');
+  const toggleSettingsBarBtn = document.getElementById('toggleSettingsBarBtn');
+  const collapseSettingsBarBtn = document.getElementById('collapseSettingsBarBtn');
+  const headerActiveRoomBadge = document.getElementById('headerActiveRoomBadge');
   const netDiagBtn = document.getElementById('netDiagBtn');
   const netDiagModal = document.getElementById('netDiagModal');
   const closeNetDiagBtn = document.getElementById('closeNetDiagBtn');
@@ -275,6 +279,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (typeof updateSoundThemeUI === 'function') updateSoundThemeUI();
     if (typeof updateAuthOverlayHint === 'function') updateAuthOverlayHint();
+    updateHeaderRoomBadge(code);
+  }
+
+  function updateHeaderRoomBadge(code) {
+    if (!headerActiveRoomBadge) return;
+    const curCode = (code || state.roomCode || '').toUpperCase().trim();
+    const isSpecial = (typeof window.getSpecialRoomConfig === 'function' && window.getSpecialRoomConfig(curCode)) || curCode === 'FSA-POLYU';
+    headerActiveRoomBadge.textContent = curCode ? `${isSpecial ? '🇵🇭 ' : ''}ROOM: ${curCode}` : 'ROOM: WAITING...';
+    headerActiveRoomBadge.className = isSpecial ? 'badge badge-gold' : 'badge';
   }
 
   // --- WebRTC & Sync Setup ---
@@ -285,6 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     state.roomCode = code;
     if (roomCodeInput) roomCodeInput.value = code;
+    updateHeaderRoomBadge(code);
 
     updateSpecialRoomState(code);
 
@@ -794,6 +808,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Players Roster
     renderRoster();
+
+    // Active Room Code in Top Header
+    updateHeaderRoomBadge(state.roomCode);
   }
 
   function renderTurnPlayer() {
@@ -1380,6 +1397,44 @@ document.addEventListener('DOMContentLoaded', () => {
   if (reconnectWebRtcBtn) {
     reconnectWebRtcBtn.addEventListener('click', () => {
       initRoom();
+    });
+  }
+
+  // --- Admin Settings Bar (Expand/Collapse & State Persistence) ---
+  function updateSettingsBarVisibility(isOpen) {
+    if (!adminSettingsBar) return;
+    if (isOpen) {
+      adminSettingsBar.classList.remove('collapsed');
+      if (toggleSettingsBarBtn) {
+        toggleSettingsBarBtn.classList.add('active');
+        toggleSettingsBarBtn.textContent = '⚙️ Settings Bar (Open)';
+      }
+    } else {
+      adminSettingsBar.classList.add('collapsed');
+      if (toggleSettingsBarBtn) {
+        toggleSettingsBarBtn.classList.remove('active');
+        toggleSettingsBarBtn.textContent = '⚙️ Settings Bar';
+      }
+    }
+    try {
+      localStorage.setItem('feud_settings_bar_open', isOpen ? 'true' : 'false');
+    } catch (e) {}
+  }
+
+  const savedBarPref = localStorage.getItem('feud_settings_bar_open');
+  const initialOpen = savedBarPref !== null ? (savedBarPref === 'true') : (window.innerWidth > 768);
+  updateSettingsBarVisibility(initialOpen);
+
+  if (toggleSettingsBarBtn) {
+    toggleSettingsBarBtn.addEventListener('click', () => {
+      const isCurrentlyOpen = !adminSettingsBar.classList.contains('collapsed');
+      updateSettingsBarVisibility(!isCurrentlyOpen);
+    });
+  }
+
+  if (collapseSettingsBarBtn) {
+    collapseSettingsBarBtn.addEventListener('click', () => {
+      updateSettingsBarVisibility(false);
     });
   }
 

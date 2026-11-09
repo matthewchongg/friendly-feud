@@ -16,27 +16,71 @@
   <header class="app-header">
     <div class="brand">
       <span class="brand-logo">Feud Admin</span>
-      <span id="webrtcStatus" class="badge badge-gold">Connecting...</span>
+      <span id="webrtcStatus" class="badge badge-gold" title="Click to test Wi-Fi connection">Connecting...</span>
+      <span id="headerActiveRoomBadge" class="badge badge-gold" style="font-size:0.8rem;letter-spacing:0.5px;">ROOM: ...</span>
     </div>
 
-    <!-- Room & Quick Launchers -->
+    <!-- Clean Header Quick Actions -->
     <div class="header-actions">
-      <div class="room-input-group">
-        <span style="font-size:0.85rem;color:var(--text-muted);font-weight:800;font-family:var(--font-display);">ROOM:</span>
-        <input type="text" id="roomCodeInput" class="form-input" style="width:95px;padding:6px 8px;font-size:0.9rem;font-weight:800;text-transform:uppercase;" placeholder="CODE">
-        <button id="setRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Set Custom Room Code">Set</button>
-        <button id="randomRoomBtn" class="icon-btn" style="padding:6px 10px;" title="Generate Clean Random Room Code">🎲 New</button>
-        <button id="reconnectWebRtcBtn" class="icon-btn" style="padding:6px 10px;" title="Reconnect WebRTC Signaling">🔄 Reconnect</button>
-        <button id="netDiagBtn" class="icon-btn" style="padding:6px 10px;" title="Test if Wi-Fi has blocks">📡 Wi-Fi Check</button>
-      </div>
-
-      <button id="showQrBtn" class="icon-btn">📱 Buzzer QR</button>
-      <button id="openBuzzerBtn" class="icon-btn">📱 Open Buzzer</button>
-      <button id="openBoardBtn" class="icon-btn" style="border-color:var(--gold-border);color:var(--gold-primary);">📺 Open Board</button>
-      <a href="rules.html" target="_blank" class="icon-btn" style="text-decoration:none;">📖 Rules</a>
-      <button id="passwordSettingsBtn" class="icon-btn" title="Admin Password Settings">🔑 Password</button>
+      <button id="openBoardBtn" class="btn-primary" style="padding:6px 14px;font-size:0.85rem;display:flex;align-items:center;gap:6px;" title="Open live game board for projector / audience">
+        📺 Open Board
+      </button>
+      <button id="showQrBtn" class="icon-btn" style="padding:6px 12px;font-size:0.85rem;" title="Show Contestant Buzzer QR Code">
+        📱 Buzzer QR
+      </button>
+      <button id="toggleSettingsBarBtn" class="icon-btn toggle-settings-btn" style="padding:6px 12px;font-size:0.85rem;border-color:var(--gold-border);color:var(--gold-primary);" title="Toggle Settings Bar">
+        ⚙️ Settings Bar
+      </button>
+      <a href="rules.html" target="_blank" class="icon-btn" style="text-decoration:none;padding:6px 12px;font-size:0.85rem;">
+        📖 Rules
+      </a>
     </div>
   </header>
+
+  <!-- Dedicated Admin Settings & Setup Bar -->
+  <aside class="admin-settings-bar" id="adminSettingsBar" aria-label="Admin settings bar">
+    <div class="settings-bar-inner">
+      <!-- Section 1: Room & Session Code -->
+      <div class="settings-group">
+        <span class="settings-group-label">🏷️ Room Setup</span>
+        <div class="room-input-group">
+          <input type="text" id="roomCodeInput" class="form-input" style="width:115px;padding:5px 9px;font-size:0.88rem;font-weight:800;text-transform:uppercase;" placeholder="CODE">
+          <button id="setRoomBtn" class="icon-btn" style="padding:5px 12px;font-weight:700;" title="Set Custom Room Code">Set</button>
+          <button id="randomRoomBtn" class="icon-btn" style="padding:5px 10px;" title="Generate Clean Random Room Code">🎲 New</button>
+        </div>
+      </div>
+
+      <!-- Section 2: Wi-Fi & Connectivity Diagnostics -->
+      <div class="settings-group">
+        <span class="settings-group-label">📡 Connection & Wi-Fi</span>
+        <div class="settings-btn-row">
+          <button id="reconnectWebRtcBtn" class="icon-btn" style="padding:5px 12px;" title="Reconnect WebRTC Signaling">🔄 Reconnect</button>
+          <button id="netDiagBtn" class="icon-btn" style="padding:5px 12px;" title="Test if Wi-Fi has blocks">📡 Wi-Fi Check</button>
+        </div>
+      </div>
+
+      <!-- Section 3: Testing & Launchers -->
+      <div class="settings-group">
+        <span class="settings-group-label">📱 Testing</span>
+        <div class="settings-btn-row">
+          <button id="openBuzzerBtn" class="icon-btn" style="padding:5px 12px;" title="Open buzzer on this device in a new tab">📱 Test Buzzer</button>
+        </div>
+      </div>
+
+      <!-- Section 4: Security & Access -->
+      <div class="settings-group">
+        <span class="settings-group-label">🔑 Security</span>
+        <div class="settings-btn-row">
+          <button id="passwordSettingsBtn" class="icon-btn" style="padding:5px 12px;" title="Admin Password Settings">🔑 Admin Passkey</button>
+        </div>
+      </div>
+
+      <!-- Section 5: Collapse Button -->
+      <div class="settings-collapse-col">
+        <button id="collapseSettingsBarBtn" class="icon-btn" style="padding:5px 10px;font-size:0.78rem;border:none;background:transparent;color:var(--text-muted);" title="Collapse Settings Bar">▲ Hide Bar</button>
+      </div>
+    </div>
+  </aside>
 
   <!-- Mobile Quick Jump Bar (Sticky navigation for small screens) -->
   <nav class="mobile-quick-nav">
