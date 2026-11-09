@@ -125,6 +125,24 @@
     </div>
   </div>
 
+  <!-- Face-Off Buzz-In Announcement Popup -->
+  <div class="board-buzz-overlay" id="boardBuzzOverlay" role="dialog" aria-modal="true" aria-labelledby="boardBuzzPlayer">
+    <div class="board-buzz-card" id="boardBuzzCard">
+      <button class="board-buzz-close" id="boardBuzzCloseBtn" aria-label="Dismiss">&times;</button>
+      <div class="board-buzz-badge">
+        <span class="board-buzz-pulse">🚨</span>
+        <span>FIRST BUZZ-IN!</span>
+        <span class="board-buzz-pulse">🚨</span>
+      </div>
+      <div class="board-buzz-player" id="boardBuzzPlayer">PLAYER NAME</div>
+      <div class="board-buzz-team" id="boardBuzzTeam">TEAM 1</div>
+      <div class="board-buzz-sub" id="boardBuzzSub">Locked in first! Awaiting answer...</div>
+      <div class="board-buzz-timer-bar">
+        <div class="board-buzz-timer-fill" id="boardBuzzTimerFill"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="js/sound.js"></script>
   <script src="js/qrcode.js"></script>

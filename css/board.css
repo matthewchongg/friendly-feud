@@ -789,3 +789,199 @@
     font-size: 1.6rem;
   }
 }
+
+/* =========================================================
+   Face-Off Buzz-In Announcement Popup (Big Screen Modal)
+   ========================================================= */
+.board-buzz-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 8, 22, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 20px;
+}
+
+.board-buzz-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.board-buzz-card {
+  position: relative;
+  width: 100%;
+  max-width: 580px;
+  background: radial-gradient(circle at 50% 20%, #152d68 0%, #07122b 100%);
+  border: 4px solid var(--gold-border);
+  border-radius: 28px;
+  padding: 38px 42px 30px;
+  text-align: center;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85), 0 0 50px rgba(246, 185, 59, 0.5);
+  transform: scale(0.78) translateY(24px);
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.board-buzz-overlay.active .board-buzz-card {
+  transform: scale(1) translateY(0);
+}
+
+.board-buzz-card.team-1-buzz {
+  border-color: #2ecc71;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85), 0 0 55px rgba(46, 204, 113, 0.7);
+}
+
+.board-buzz-card.team-2-buzz {
+  border-color: #ff5252;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85), 0 0 55px rgba(255, 82, 82, 0.7);
+}
+
+.board-buzz-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.board-buzz-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.12);
+}
+
+.board-buzz-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(246, 185, 59, 0.18);
+  border: 2px solid var(--gold-border);
+  color: var(--gold-glow);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 6px 24px;
+  border-radius: 999px;
+  box-shadow: 0 0 20px rgba(246, 185, 59, 0.45);
+  margin-bottom: 16px;
+}
+
+.board-buzz-pulse {
+  display: inline-block;
+  animation: buzzPulse 0.85s infinite alternate ease-in-out;
+}
+
+@keyframes buzzPulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 2px #fff); }
+  100% { transform: scale(1.35); filter: drop-shadow(0 0 10px #f6b93b); }
+}
+
+.board-buzz-player {
+  font-family: var(--font-display);
+  font-size: 3.4rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  text-shadow: 0 4px 22px rgba(0, 0, 0, 0.95), 0 0 30px rgba(255, 255, 255, 0.45);
+  word-break: break-word;
+}
+
+.board-buzz-team {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  padding: 8px 28px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+}
+
+.team-1-buzz .board-buzz-team {
+  background: #2ecc71;
+  color: #032310;
+  box-shadow: 0 0 25px rgba(46, 204, 113, 0.75);
+}
+
+.team-2-buzz .board-buzz-team {
+  background: #ff5252;
+  color: #2b0404;
+  box-shadow: 0 0 25px rgba(255, 82, 82, 0.75);
+}
+
+.board-buzz-sub {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 22px;
+}
+
+.board-buzz-timer-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.board-buzz-timer-fill {
+  width: 100%;
+  height: 100%;
+  background: var(--gold-primary);
+  border-radius: 999px;
+  transition: width 4.5s linear;
+}
+
+.team-1-buzz .board-buzz-timer-fill {
+  background: #2ecc71;
+}
+
+.team-2-buzz .board-buzz-timer-fill {
+  background: #ff5252;
+}
+
+@media (max-width: 600px) {
+  .board-buzz-card {
+    padding: 24px 20px 20px;
+    border-radius: 20px;
+  }
+  .board-buzz-player {
+    font-size: 2.2rem;
+  }
+  .board-buzz-badge {
+    font-size: 1.05rem;
+    padding: 5px 16px;
+    letter-spacing: 1px;
+  }
+  .board-buzz-team {
+    font-size: 1.15rem;
+    padding: 6px 18px;
+  }
+  .board-buzz-sub {
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+  }
+}

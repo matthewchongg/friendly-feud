@@ -49,6 +49,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const soundToggleBtn = document.getElementById('soundToggleBtn');
   const fullscreenBtn = document.getElementById('fullscreenBtn');
 
+  // Buzz-In Celebration Popup Elements
+  const boardBuzzOverlay = document.getElementById('boardBuzzOverlay');
+  const boardBuzzCard = document.getElementById('boardBuzzCard');
+  const boardBuzzCloseBtn = document.getElementById('boardBuzzCloseBtn');
+  const boardBuzzPlayer = document.getElementById('boardBuzzPlayer');
+  const boardBuzzTeam = document.getElementById('boardBuzzTeam');
+  const boardBuzzSub = document.getElementById('boardBuzzSub');
+  const boardBuzzTimerFill = document.getElementById('boardBuzzTimerFill');
+
   // Load initial state
   let state = window.gameState.get();
   renderState(state);
@@ -115,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'FACE_OFF_BUZZ':
         sound.playBuzzerHit();
         showBuzzBanner(msg.payload);
+        showBuzzPopup(msg.payload);
         break;
 
       case 'DECLARE_WINNER':
@@ -125,6 +135,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderState(s) {
     if (!s) return;
+
+    // Auto-dismiss buzz popup if face-off buzz state cleared or phase changed
+    if ((s.faceOff && !s.faceOff.buzzWinner) || s.phase !== 'FACEOFF') {
+      dismissBuzzPopup();
+    }
 
     // Custom Team Names & Scores
     if (team1NameEl) team1NameEl.textContent = s.team1.name || 'Team 1';
@@ -256,17 +271,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
     strikesOverlayEl.classList.add('active');
 
-    if (count >= 3) {
-      sound.playTripleStrike();
-    } else if (count === 2) {
-      sound.playDoubleStrike();
-    } else {
-      sound.playStrike();
-    }
+    // Single wrong buzzer sound for strikes (no repeats)
+    sound.playStrike();
 
     setTimeout(() => {
       strikesOverlayEl.classList.remove('active');
     }, 1800);
+  }
+
+  // --- Face-Off Buzz-In Celebration Popup ---
+  let buzzPopupTimer = null;
+
+  function dismissBuzzPopup() {
+    if (boardBuzzOverlay) boardBuzzOverlay.classList.remove('active');
+    if (buzzPopupTimer) {
+      clearTimeout(buzzPopupTimer);
+      buzzPopupTimer = null;
+    }
+  }
+
+  function showBuzzPopup(data) {
+    if (!boardBuzzOverlay || !boardBuzzCard || !data) return;
+
+    const pName = data.playerName || 'Contestant';
+    const teamNum = data.team === 1 ? 1 : 2;
+    const tName = data.teamName || (teamNum === 1 ? state.team1.name : state.team2.name) || `Team ${teamNum}`;
+
+    if (boardBuzzPlayer) boardBuzzPlayer.textContent = pName;
+    if (boardBuzzTeam) boardBuzzTeam.textContent = tName;
+    if (boardBuzzSub) boardBuzzSub.textContent = 'Locked in 1st place! Ready for answer...';
+
+    boardBuzzCard.classList.remove('team-1-buzz', 'team-2-buzz');
+    boardBuzzCard.classList.add(teamNum === 1 ? 'team-1-buzz' : 'team-2-buzz');
+
+    if (boardBuzzTimerFill) {
+      boardBuzzTimerFill.style.transition = 'none';
+      boardBuzzTimerFill.style.width = '100%';
+      void boardBuzzTimerFill.offsetWidth; // force DOM reflow
+      boardBuzzTimerFill.style.transition = 'width 4.5s linear';
+      boardBuzzTimerFill.style.width = '0%';
+    }
+
+    boardBuzzOverlay.classList.add('active');
+
+    if (buzzPopupTimer) clearTimeout(buzzPopupTimer);
+    buzzPopupTimer = setTimeout(() => {
+      dismissBuzzPopup();
+    }, 4500);
+  }
+
+  if (boardBuzzCloseBtn) {
+    boardBuzzCloseBtn.addEventListener('click', dismissBuzzPopup);
+  }
+  if (boardBuzzOverlay) {
+    boardBuzzOverlay.addEventListener('click', (e) => {
+      if (e.target === boardBuzzOverlay) dismissBuzzPopup();
+    });
   }
 
   function showBuzzBanner(data) {
@@ -306,14 +366,20 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleSound(type) {
     switch (type) {
       case 'DING': sound.playDing(); break;
-      case 'STRIKE': sound.playStrike(); break;
-      case 'DOUBLE_STRIKE': sound.playDoubleStrike(); break;
-      case 'TRIPLE_STRIKE': sound.playTripleStrike(); break;
+      case 'STRIKE':
+      case 'DOUBLE_STRIKE':
+      case 'TRIPLE_STRIKE':
+        sound.playStrike();
+        break;
       case 'FACE_OFF': sound.playFaceOff(); break;
       case 'THEME_PLAY': sound.playTheme(); break;
       case 'THEME_STOP': sound.stopTheme(); break;
       case 'BUZZER': sound.playBuzzerHit(); break;
-      case 'STEAL_GONG': sound.playStealGong(); break;
+      case 'STEAL_GONG':
+        if (sound.getTheme() !== 'philippines' && (state.roomCode || '').toUpperCase() !== 'FSA-POLYU') {
+          sound.playStealGong();
+        }
+        break;
       case 'FANFARE': sound.playFanfare(); break;
     }
   }

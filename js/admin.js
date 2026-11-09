@@ -245,6 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
       philippineThemeSongRow.style.display = special ? 'flex' : 'none';
     }
 
+    if (sfxGongBtn) {
+      sfxGongBtn.style.display = special ? 'none' : 'inline-flex';
+    }
+
     if (special) {
       sound.setTheme('philippines');
       if (soundThemeBadge) {
@@ -1167,16 +1171,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Strikes Supervisor ---
   function applyStrike(count) {
     state.strikes = count;
-    if (count >= 3) {
-      sound.playTripleStrike();
-      sync.broadcast('PLAY_SOUND', { sound: 'TRIPLE_STRIKE' });
-    } else if (count === 2) {
-      sound.playDoubleStrike();
-      sync.broadcast('PLAY_SOUND', { sound: 'DOUBLE_STRIKE' });
-    } else {
-      sound.playStrike();
-      sync.broadcast('PLAY_SOUND', { sound: 'STRIKE' });
-    }
+    // Play single wrong buzzer sound across all strikes (no repeats)
+    sound.playStrike();
+    sync.broadcast('PLAY_SOUND', { sound: 'STRIKE' });
     sync.broadcast('SHOW_STRIKE', { count: count });
 
     if (state.strikes >= 3 && state.controllingTeam) {
@@ -1184,8 +1181,11 @@ document.addEventListener('DOMContentLoaded', () => {
       state.steal.active = true;
       state.steal.controllingTeam = state.controllingTeam;
       state.steal.stealingTeam = state.controllingTeam === 1 ? 2 : 1;
-      sound.playStealGong();
-      sync.broadcast('PLAY_SOUND', { sound: 'STEAL_GONG' });
+      const isFsa = (state.roomCode || '').toUpperCase() === 'FSA-POLYU' || sound.getTheme() === 'philippines';
+      if (!isFsa) {
+        sound.playStealGong();
+        sync.broadcast('PLAY_SOUND', { sound: 'STEAL_GONG' });
+      }
     }
 
     broadcastState();
@@ -1491,6 +1491,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sfxThemeToggleBtn) {
       sfxThemeToggleBtn.textContent = curTheme === 'philippines' ? 'Theme: 🇵🇭 PH' : 'Theme: 🎹 Classic';
     }
+    if (sfxGongBtn) {
+      sfxGongBtn.style.display = curTheme === 'philippines' ? 'none' : 'inline-flex';
+    }
   }
 
   if (sfxThemeToggleBtn) {
@@ -1517,15 +1520,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (sfxDoubleStrikeBtn) {
     sfxDoubleStrikeBtn.addEventListener('click', () => {
-      sound.playDoubleStrike();
-      sync.broadcast('PLAY_SOUND', { sound: 'DOUBLE_STRIKE' });
+      sound.playStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'STRIKE' });
     });
   }
 
   if (sfxTripleStrikeBtn) {
     sfxTripleStrikeBtn.addEventListener('click', () => {
-      sound.playTripleStrike();
-      sync.broadcast('PLAY_SOUND', { sound: 'TRIPLE_STRIKE' });
+      sound.playStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'STRIKE' });
     });
   }
 
@@ -1545,6 +1548,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (sfxGongBtn) {
     sfxGongBtn.addEventListener('click', () => {
+      const isFsa = (state.roomCode || '').toUpperCase() === 'FSA-POLYU' || sound.getTheme() === 'philippines';
+      if (isFsa) return;
       sound.playStealGong();
       sync.broadcast('PLAY_SOUND', { sound: 'STEAL_GONG' });
     });

@@ -22,7 +22,8 @@ class SoundEngine {
     this.audioFiles = {
       ding: 'audio/ph_correct_ding_clean.wav',
       strike: 'audio/ph_wrong_buzzer_clean.wav',
-      faceoff: 'audio/ph_faceoff_clean.wav',
+      buzzer: 'audio/ph_faceoff_buzz_clean.wav',
+      faceoff: 'audio/ph_faceoff_buzz_clean.wav',
       fanfare: 'audio/ph_roundwin_clean.wav',
       theme: 'audio/ph_theme_anongsabe.mp3'
     };
@@ -112,6 +113,7 @@ class SoundEngine {
     switch (key) {
       case 'ding': this._synthDing(); break;
       case 'strike': this._synthStrike(); break;
+      case 'buzzer':
       case 'faceoff': this._synthBuzzerHit(); break;
       case 'fanfare': this._synthFanfare(); break;
     }
@@ -182,10 +184,13 @@ class SoundEngine {
   }
 
   /**
-   * Single Strike (X) - Wrong Buzzer
+   * Single Strike (X) - Wrong Buzzer (Single buzz)
    */
   playStrike() {
     if (this.muted) return;
+    const now = Date.now();
+    if (this._lastStrikeTime && (now - this._lastStrikeTime < 100)) return;
+    this._lastStrikeTime = now;
     if (this.soundTheme === 'philippines') {
       this.playAudioFile('strike', 0.95);
     } else {
@@ -194,39 +199,17 @@ class SoundEngine {
   }
 
   /**
-   * Double Strike (XX) - Repeat Wrong Buzzer audio two times
+   * Double Strike (XX) - Keep 1 buzz in (no repeat)
    */
   playDoubleStrike() {
-    if (this.muted) return;
-    if (this.soundTheme === 'philippines') {
-      this.playAudioFile('strike', 0.95);
-      setTimeout(() => {
-        if (!this.muted) this.playAudioFile('strike', 0.95);
-      }, 420);
-    } else {
-      this._synthStrike();
-      setTimeout(() => {
-        if (!this.muted) this._synthStrike();
-      }, 400);
-    }
+    this.playStrike();
   }
 
   /**
-   * Triple Strike (XXX) - Repeat Wrong Buzzer audio three times
+   * Triple Strike (XXX) - Keep 1 buzz in (no repeat)
    */
   playTripleStrike() {
-    if (this.muted) return;
-    if (this.soundTheme === 'philippines') {
-      this.playAudioFile('strike', 0.95);
-      setTimeout(() => {
-        if (!this.muted) this.playAudioFile('strike', 0.95);
-      }, 420);
-      setTimeout(() => {
-        if (!this.muted) this.playAudioFile('strike', 0.95);
-      }, 840);
-    } else {
-      this._synthTripleStrike();
-    }
+    this.playStrike();
   }
 
   /**
@@ -235,19 +218,19 @@ class SoundEngine {
   playFaceOff() {
     if (this.muted) return;
     if (this.soundTheme === 'philippines') {
-      this.playAudioFile('faceoff', 0.95);
+      this.playAudioFile('buzzer', 0.95);
     } else {
       this._synthBuzzerHit();
     }
   }
 
   /**
-   * Buzzer hit (when contestant buzzes in)
+   * Buzzer hit (when contestant buzzes in - new face-off buzzer audio)
    */
   playBuzzerHit() {
     if (this.muted) return;
     if (this.soundTheme === 'philippines') {
-      this.playAudioFile('strike', 0.75);
+      this.playAudioFile('buzzer', 0.95);
     } else {
       this._synthBuzzerHit();
     }
@@ -266,10 +249,11 @@ class SoundEngine {
   }
 
   /**
-   * Dramatic Gong for Steal phase
+   * Dramatic Gong for Steal phase (Disabled in POLYU FSA / Philippine edition)
    */
   playStealGong() {
     if (this.muted) return;
+    if (this.soundTheme === 'philippines') return;
     this._synthStealGong();
   }
 
@@ -330,12 +314,7 @@ class SoundEngine {
   }
 
   _synthTripleStrike() {
-    this.init();
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-    this._createBuzzPulse(now, 0.2);
-    this._createBuzzPulse(now + 0.24, 0.2);
-    this._createBuzzPulse(now + 0.48, 0.55);
+    this._synthStrike();
   }
 
   _createBuzzPulse(startTime, duration) {
