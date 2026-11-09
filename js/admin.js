@@ -218,17 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const roomFromUrl = urlParams.get('room');
 
-  // If no room is specified in URL query, default to a fresh clean standard room unless user specifically requested a room
-  let targetInitialCode = roomFromUrl;
-  if (!targetInitialCode) {
-    const isSpecialSaved = state.roomCode && ((typeof window.getSpecialRoomConfig === 'function' && window.getSpecialRoomConfig(state.roomCode)) || state.roomCode === 'FSA-POLYU');
-    const isSpecialAuth = isSpecialSaved && (sessionStorage.getItem(`feud_admin_auth_${state.roomCode}`) === 'true');
-    if (isSpecialSaved && !isSpecialAuth) {
-      targetInitialCode = generateRandomRoomCode();
-    } else {
-      targetInitialCode = state.roomCode || generateRandomRoomCode();
-    }
+  // Room resolution on load: prioritize URL query, then persistent state, fallback to random code
+  let targetInitialCode = roomFromUrl || state.roomCode;
+  if (!targetInitialCode || targetInitialCode === 'FEUD') {
+    targetInitialCode = generateRandomRoomCode();
   }
+  state.roomCode = targetInitialCode;
 
   initRoom(targetInitialCode);
   buildAnswersInputForm();
@@ -337,9 +332,14 @@ document.addEventListener('DOMContentLoaded', () => {
       loadQuestion(qManager.getAll()[0]);
     }
 
-    // Avoid redundant re-initialization if host peer is already online or connecting for this room
-    if (sync.roomCode === code && (sync.isOnline || sync._isConnecting) && sync.role === 'host') {
-      console.log(`[Admin] Host peer already active or connecting for room: ${code}`);
+    // If host peer is already online for this room, simply update UI badges and exit
+    if (sync.roomCode === code && sync.isOnline && sync.role === 'host') {
+      console.log(`[Admin] Host peer already active and online for room: ${code}`);
+      if (webrtcStatusEl) {
+        webrtcStatusEl.className = 'badge badge-green';
+        webrtcStatusEl.textContent = `🟢 Online: ${code} (${sync.connections.size} buzzers)`;
+        webrtcStatusEl.title = `Host active. Peer ID: ${sync.getHostPeerId(code)}. Devices connected: ${sync.connections.size}`;
+      }
       return;
     }
 
@@ -368,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } else if (evt.status === 'connecting') {
         webrtcStatusEl.className = 'badge badge-gold';
-        webrtcStatusEl.textContent = `🟡 Connecting: ${evt.roomCode || code}...`;
+        webrtcStatusEl.textContent = evt.message ? `🟡 ${evt.message}` : `🟡 Connecting: ${evt.roomCode || code}...`;
       } else if (evt.status === 'disconnected') {
         webrtcStatusEl.className = 'badge badge-gold';
         webrtcStatusEl.textContent = '🟡 Reconnecting...';
@@ -1455,6 +1455,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (reconnectWebRtcBtn) {
     reconnectWebRtcBtn.addEventListener('click', () => {
+      sync.retryAttempts = 0;
+      sync.reclaimAttempts = 0;
       sync.destroyPeer();
       initRoom(state.roomCode);
     });
@@ -1464,6 +1466,8 @@ document.addEventListener('DOMContentLoaded', () => {
     webrtcStatusEl.style.cursor = 'pointer';
     webrtcStatusEl.title = 'Click to force reconnect WebRTC';
     webrtcStatusEl.addEventListener('click', () => {
+      sync.retryAttempts = 0;
+      sync.reclaimAttempts = 0;
       sync.destroyPeer();
       initRoom(state.roomCode);
     });

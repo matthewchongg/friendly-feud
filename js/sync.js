@@ -134,6 +134,10 @@ class SyncEngine {
   }
 
   getHostPeerId(code) {
+    return 'feud-polyufsa-' + (code || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+  }
+
+  getAltHostPeerId(code) {
     return 'feud-live-' + (code || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
   }
 
@@ -148,7 +152,7 @@ class SyncEngine {
 
   // ==========================================
   // HOST PEER (Admin Screen ONLY)
-  // Registers feud-live-[CODE] on PeerJS Cloud
+  // Registers feud-polyufsa-[CODE] on PeerJS Cloud
   // ==========================================
   initHostPeer(roomCode, onStatusChange) {
     this.role = 'host';
@@ -209,32 +213,43 @@ class SyncEngine {
         if (err.type === 'unavailable-id') {
           this.isOnline = false;
 
-          // Never auto-switch a special designated event room!
+          // Disarm disconnected listener on failed peer so it does not hijack reclaim retry
+          if (this.peer) {
+            try {
+              if (typeof this.peer.off === 'function') {
+                this.peer.off('disconnected');
+              } else if (typeof this.peer.removeAllListeners === 'function') {
+                this.peer.removeAllListeners('disconnected');
+              }
+            } catch(e){}
+          }
+
+          // Special designated event room (e.g. FSA-POLYU)
           const isSpecial = (typeof window !== 'undefined' && typeof window.getSpecialRoomConfig === 'function' && window.getSpecialRoomConfig(this.roomCode)) || (this.roomCode === 'FSA-POLYU');
           if (isSpecial) {
             this.reclaimAttempts = (this.reclaimAttempts || 0) + 1;
-            if (this.reclaimAttempts > 3) {
+            if (this.reclaimAttempts > 5) {
               if (this.statusCallback) {
                 this.statusCallback({
                   status: 'error',
                   roomCode: this.roomCode,
-                  message: `Room "${this.roomCode}" is active in another browser tab or device. Please close other admin tabs and tap Reconnect.`
+                  message: `Room "${this.roomCode}" occupied on PeerJS cloud from previous session. Click Reconnect to retry.`
                 });
               }
               return;
             }
-            console.warn(`[Host] Special event room "${this.roomCode}" is currently registered on PeerJS cloud (attempt ${this.reclaimAttempts}/3). Reclaiming slot in 3s...`);
+            console.warn(`[Host] Room "${this.roomCode}" held on PeerJS cloud (attempt ${this.reclaimAttempts}/5). Reclaiming slot in 2s...`);
             if (this.statusCallback) {
               this.statusCallback({
                 status: 'connecting',
                 roomCode: this.roomCode,
-                message: `Reclaiming room "${this.roomCode}" from previous session...`
+                message: `Reclaiming room "${this.roomCode}" from previous session (${this.reclaimAttempts}/5)...`
               });
             }
             if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
             this.reconnectTimer = setTimeout(() => {
               this.initHostPeer(this.roomCode, this.statusCallback);
-            }, 3000);
+            }, 2000);
             return;
           }
 
@@ -262,21 +277,21 @@ class SyncEngine {
 
       this.peer.on('disconnected', () => {
         if (this._isDestroying || !this.peer || this.peer.destroyed) return;
+        // CRITICAL: If the host peer was never successfully online, do not fire reconnect!
+        // Unsuccessful initial connection errors are handled exclusively by error handler above.
+        if (!this.isOnline) return;
+
         this.isOnline = false;
         this._isConnecting = false;
-        console.warn('[Host] PeerJS disconnected from server, attempting reconnect...');
+        console.warn('[Host] PeerJS disconnected from server, re-establishing host room in 2.5s...');
         if (this.statusCallback) this.statusCallback({ status: 'disconnected', message: 'Reconnecting to PeerJS cloud...' });
         
-        // Debounce reconnect so it doesn't spam PeerJS in a tight loop
+        // Re-initialize host cleanly instead of peer.reconnect()
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.reconnectTimer = setTimeout(() => {
-          if (this._isDestroying || !this.peer || this.peer.destroyed) return;
-          try {
-            this.peer.reconnect();
-          } catch (e) {
-            console.warn('[Host] Reconnect failed:', e);
-          }
-        }, 3000);
+          if (this._isDestroying) return;
+          this.initHostPeer(this.roomCode, this.statusCallback);
+        }, 2500);
       });
     } catch (e) {
       this._isConnecting = false;
@@ -398,7 +413,7 @@ class SyncEngine {
     this.role = 'viewer';
     this.statusCallback = onStatusChange;
     this.roomCode = (roomCode || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
-    const targetHostId = this.getHostPeerId(this.roomCode);
+    this.targetHostId = this.getHostPeerId(this.roomCode);
 
     if (typeof Peer === 'undefined') {
       if (onStatusChange) onStatusChange({ status: 'offline', message: 'PeerJS script not loaded' });
@@ -418,14 +433,19 @@ class SyncEngine {
       });
 
       this.peer.on('open', () => {
-        this.connectViewerToHost(targetHostId);
+        this.connectViewerToHost(this.targetHostId);
       });
 
       this.peer.on('error', (err) => {
         console.warn('[Viewer] Peer error:', err);
         if (err.type === 'peer-unavailable') {
+          // Rotate target ID to alternate namespace if needed
+          this.targetHostId = (this.targetHostId === this.getHostPeerId(this.roomCode))
+            ? this.getAltHostPeerId(this.roomCode)
+            : this.getHostPeerId(this.roomCode);
+
           if (this.statusCallback) this.statusCallback({ status: 'waiting-host', message: 'Host not online yet. Syncing locally...' });
-          this.scheduleViewerReconnect(targetHostId);
+          this.scheduleViewerReconnect(this.targetHostId);
         } else {
           if (this.statusCallback) this.statusCallback({ status: 'error', message: err.type });
         }
@@ -481,9 +501,9 @@ class SyncEngine {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => {
       if (this.peer && !this.peer.destroyed) {
-        this.connectViewerToHost(targetHostId);
+        this.connectViewerToHost(targetHostId || this.targetHostId);
       }
-    }, 4000);
+    }, 3500);
   }
 
   // ==========================================
@@ -495,7 +515,7 @@ class SyncEngine {
     this.statusCallback = onStatusChange;
     this.playerData = playerData;
     this.roomCode = (roomCode || 'FEUD').toUpperCase().replace(/[^A-Z0-9_-]/g, '');
-    const targetHostId = this.getHostPeerId(this.roomCode);
+    this.targetHostId = this.getHostPeerId(this.roomCode);
 
     if (typeof Peer === 'undefined') {
       if (onStatusChange) onStatusChange({ status: 'offline', message: 'PeerJS script not loaded' });
@@ -515,12 +535,17 @@ class SyncEngine {
       });
 
       this.peer.on('open', () => {
-        this.connectClientToHost(targetHostId);
+        this.connectClientToHost(this.targetHostId);
       });
 
       this.peer.on('error', (err) => {
         console.warn('[Client] Peer error:', err);
         if (err.type === 'peer-unavailable') {
+          // Seamlessly probe alternate prefix if host was started under alternate namespace
+          this.targetHostId = (this.targetHostId === this.getHostPeerId(this.roomCode))
+            ? this.getAltHostPeerId(this.roomCode)
+            : this.getHostPeerId(this.roomCode);
+
           if (this.statusCallback) {
             this.statusCallback({
               status: 'reconnecting',
@@ -528,7 +553,7 @@ class SyncEngine {
               roomCode: this.roomCode
             });
           }
-          this.scheduleClientReconnect(targetHostId);
+          this.scheduleClientReconnect(this.targetHostId);
         } else {
           if (this.statusCallback) this.statusCallback({ status: 'error', message: err.type, roomCode: this.roomCode });
         }
@@ -629,14 +654,15 @@ class SyncEngine {
     this.retryAttempts++;
     this.reconnectTimer = setTimeout(() => {
       console.log(`[Client] Reconnect attempt ${this.retryAttempts}/${this.maxRetries}...`);
-      this.connectClientToHost(targetHostId);
+      this.connectClientToHost(targetHostId || this.targetHostId);
     }, 3500);
   }
 
   retryClientNow() {
     this.retryAttempts = 0;
+    this.targetHostId = this.getHostPeerId(this.roomCode);
     if (this.peer && !this.peer.destroyed) {
-      this.connectClientToHost(this.getHostPeerId(this.roomCode));
+      this.connectClientToHost(this.targetHostId);
     } else {
       this.initClientPeer(this.roomCode, this.playerData, this.statusCallback);
     }
