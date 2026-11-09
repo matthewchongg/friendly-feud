@@ -46,6 +46,25 @@ class SyncEngine {
       } catch(e){}
       this.hostConn = null;
     }
+    if (this.altPeer) {
+      const ap = this.altPeer;
+      this.altPeer = null;
+      try {
+        if (typeof ap.removeAllListeners === 'function') {
+          ap.removeAllListeners();
+        } else if (typeof ap.off === 'function') {
+          ap.off('open');
+          ap.off('connection');
+          ap.off('error');
+          ap.off('disconnected');
+          ap.off('close');
+        }
+        if (!ap.destroyed) {
+          ap.disconnect();
+          ap.destroy();
+        }
+      } catch(e){}
+    }
     if (this.peer) {
       const p = this.peer;
       this.peer = null;
@@ -124,12 +143,11 @@ class SyncEngine {
 
   getIceServers() {
     return [
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      { urls: 'stun:global.stun.twilio.com:3478' },
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' },
-      { urls: 'stun:stun.cloudflare.com:3478' }
+      { urls: 'stun:stun2.l.google.com:19302' }
     ];
   }
 
@@ -199,6 +217,30 @@ class SyncEngine {
             roomCode: this.roomCode,
             connectedCount: this.connections.size
           });
+        }
+
+        // Also spin up secondary listener on alternate namespace so buzzers on older/alternate prefixes connect seamlessly!
+        const altPeerId = this.getAltHostPeerId(this.roomCode);
+        if (altPeerId && altPeerId !== id && !this.altPeer) {
+          try {
+            this.altPeer = new Peer(altPeerId, {
+              host: '0.peerjs.com',
+              port: 443,
+              path: '/',
+              secure: true,
+              debug: 1,
+              config: { iceServers: this.getIceServers() }
+            });
+            this.altPeer.on('connection', (conn) => {
+              console.log(`[Host] Client connected via alternate namespace [${conn.peer}]`);
+              this.setupHostConnection(conn);
+            });
+            this.altPeer.on('error', (err) => {
+              console.log('[Host] Alt namespace notice:', err.type);
+            });
+          } catch(e) {
+            console.warn('[Host] Alt namespace error:', e);
+          }
         }
       });
 
@@ -422,8 +464,10 @@ class SyncEngine {
 
     this.destroyPeer();
 
+    const viewerId = 'feud-board-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now();
+
     try {
-      this.peer = new Peer({
+      this.peer = new Peer(viewerId, {
         host: '0.peerjs.com',
         port: 443,
         path: '/',
@@ -459,14 +503,34 @@ class SyncEngine {
     if (!this.peer || this.peer.destroyed) return;
     if (this.statusCallback) this.statusCallback({ status: 'connecting', message: 'Connecting to Host room...' });
 
+    if (this.connectWatchdog) {
+      clearTimeout(this.connectWatchdog);
+      this.connectWatchdog = null;
+    }
+
     if (this.hostConn) {
       try { this.hostConn.close(); } catch(e){}
       this.hostConn = null;
     }
 
-    this.hostConn = this.peer.connect(targetHostId, { reliable: true });
+    this.hostConn = this.peer.connect(targetHostId);
+
+    // 4-Second Watchdog: prevent indefinite hanging in connecting state
+    this.connectWatchdog = setTimeout(() => {
+      if (!this.isOnline) {
+        console.warn(`[Viewer] Connection to host ${targetHostId} timed out after 4s. Attempting alternate...`);
+        this.targetHostId = (targetHostId === this.getHostPeerId(this.roomCode))
+          ? this.getAltHostPeerId(this.roomCode)
+          : this.getHostPeerId(this.roomCode);
+        this.scheduleViewerReconnect(this.targetHostId);
+      }
+    }, 4000);
 
     const onOpen = () => {
+      if (this.connectWatchdog) {
+        clearTimeout(this.connectWatchdog);
+        this.connectWatchdog = null;
+      }
       this.isOnline = true;
       if (this.statusCallback) this.statusCallback({ status: 'connected', message: 'Connected to Host!' });
       try {
@@ -524,8 +588,10 @@ class SyncEngine {
 
     this.destroyPeer();
 
+    const clientId = 'feud-p-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now();
+
     try {
-      this.peer = new Peer({
+      this.peer = new Peer(clientId, {
         host: '0.peerjs.com',
         port: 443,
         path: '/',
@@ -570,14 +636,42 @@ class SyncEngine {
       this.statusCallback({ status: 'connecting', message: `Connecting to room ${this.roomCode}...`, roomCode: this.roomCode });
     }
 
+    if (this.connectWatchdog) {
+      clearTimeout(this.connectWatchdog);
+      this.connectWatchdog = null;
+    }
+
     if (this.hostConn) {
       try { this.hostConn.close(); } catch(e){}
       this.hostConn = null;
     }
 
-    this.hostConn = this.peer.connect(targetHostId, { reliable: true });
+    this.hostConn = this.peer.connect(targetHostId);
+
+    // 4-Second Watchdog: prevent indefinite hanging in yellow/connecting state
+    this.connectWatchdog = setTimeout(() => {
+      if (!this.isOnline) {
+        console.warn(`[Client] Connection to host ${targetHostId} timed out after 4s. Attempting alternate...`);
+        this.targetHostId = (targetHostId === this.getHostPeerId(this.roomCode))
+          ? this.getAltHostPeerId(this.roomCode)
+          : this.getHostPeerId(this.roomCode);
+
+        if (this.statusCallback) {
+          this.statusCallback({
+            status: 'reconnecting',
+            message: `Searching for host room...`,
+            roomCode: this.roomCode
+          });
+        }
+        this.scheduleClientReconnect(this.targetHostId);
+      }
+    }, 4000);
 
     const onOpen = () => {
+      if (this.connectWatchdog) {
+        clearTimeout(this.connectWatchdog);
+        this.connectWatchdog = null;
+      }
       this.isOnline = true;
       this.retryAttempts = 0;
       console.log(`[Client] Connected to host ${targetHostId}!`);
