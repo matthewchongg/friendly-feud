@@ -4,6 +4,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  try {
   const sync = new SyncEngine('board');
   const sound = window.soundEngine;
   const confetti = new ConfettiCannon('confettiCanvas');
@@ -57,6 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const boardBuzzTeam = document.getElementById('boardBuzzTeam');
   const boardBuzzSub = document.getElementById('boardBuzzSub');
   const boardBuzzTimerFill = document.getElementById('boardBuzzTimerFill');
+
+  let buzzPopupTimer = null;
 
   // Load initial state
   let state = window.gameState.get();
@@ -289,8 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Face-Off Buzz-In Celebration Popup ---
-  let buzzPopupTimer = null;
-
   function dismissBuzzPopup() {
     if (boardBuzzOverlay) boardBuzzOverlay.classList.remove('active');
     if (buzzPopupTimer) {
@@ -464,4 +465,12 @@ document.addEventListener('DOMContentLoaded', () => {
       sync.broadcast('STATE_UPDATE', state);
     }
   });
+  } catch (err) {
+    console.error('BOARD INIT CRASH:', err);
+    var b = document.createElement('div');
+    b.id = 'board-crash-banner';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;z-index:999999;padding:20px;font-size:18px;font-family:sans-serif;font-weight:bold;';
+    b.innerHTML = 'BOARD INIT ERROR: ' + err.message + '<br><pre>' + err.stack + '</pre>';
+    document.body.appendChild(b);
+  }
 });
