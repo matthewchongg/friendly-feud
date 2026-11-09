@@ -305,11 +305,14 @@ document.addEventListener('DOMContentLoaded', () => {
         webrtcStatusEl.title = `Host active and verified unused. Peer ID: feud-room-${evt.roomCode}. Devices connected: ${evt.connectedCount || 0}`;
         window.gameState.update({ roomCode: evt.roomCode });
       } else if (evt.status === 'code-collision') {
-        state.roomCode = evt.roomCode;
-        if (roomCodeInput) roomCodeInput.value = evt.roomCode;
-        webrtcStatusEl.className = 'badge badge-gold';
-        webrtcStatusEl.textContent = `🟡 Finding unused code: ${evt.roomCode}...`;
-        window.gameState.update({ roomCode: evt.roomCode });
+        const isSpecial = (typeof window.getSpecialRoomConfig === 'function' && window.getSpecialRoomConfig(state.roomCode)) || state.roomCode === 'FSA-POLYU';
+        if (!isSpecial) {
+          state.roomCode = evt.roomCode;
+          if (roomCodeInput) roomCodeInput.value = evt.roomCode;
+          webrtcStatusEl.className = 'badge badge-gold';
+          webrtcStatusEl.textContent = `🟡 Finding unused code: ${evt.roomCode}...`;
+          window.gameState.update({ roomCode: evt.roomCode });
+        }
       } else if (evt.status === 'connecting') {
         webrtcStatusEl.className = 'badge badge-gold';
         webrtcStatusEl.textContent = `🟡 Connecting: ${evt.roomCode || code}...`;
@@ -2095,22 +2098,83 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Unlock logic for when screen is locked via "Lock Screen Now"
+  // Eye button to show/hide password on the lock overlay
+  const toggleAuthPassVisibilityBtn = document.getElementById('toggleAuthPassVisibilityBtn');
+  if (toggleAuthPassVisibilityBtn && adminPasswordAuthInput) {
+    toggleAuthPassVisibilityBtn.addEventListener('click', () => {
+      const isPass = adminPasswordAuthInput.type === 'password';
+      adminPasswordAuthInput.type = isPass ? 'text' : 'password';
+      toggleAuthPassVisibilityBtn.textContent = isPass ? '🔒' : '👁️';
+      adminPasswordAuthInput.focus();
+    });
+  }
+
+  // Switch to standard room escape button on the lock overlay
+  const authOverlayExitToStandardBtn = document.getElementById('authOverlayExitToStandardBtn');
+  if (authOverlayExitToStandardBtn) {
+    authOverlayExitToStandardBtn.addEventListener('click', () => {
+      const freshCode = generateRandomRoomCode();
+      state.roomCode = freshCode;
+      if (roomCodeInput) roomCodeInput.value = freshCode;
+      sessionStorage.setItem('feud_admin_auth', 'true');
+      initRoom(freshCode);
+      if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
+      if (authErrorMsg) authErrorMsg.style.display = 'none';
+      broadcastState();
+      renderUI();
+    });
+  }
+
+  // Unlock logic for when screen is locked via "Lock Screen Now" or secret room gate
   if (adminUnlockBtn && adminPasswordAuthInput) {
     const attemptUnlock = () => {
       const inputPass = adminPasswordAuthInput.value.trim();
+      const cleanInput = inputPass.toLowerCase().replace(/[\s_]/g, '-');
       const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
       const targetPass = getAdminPassword();
-      const isSpecialMatch = special && inputPass.toLowerCase() === (special.password || '').toLowerCase();
 
-      if (inputPass === targetPass || isSpecialMatch) {
+      // Check special room matches (exact, lowercase, or normalized hyphens)
+      const specialPass = special ? (special.password || '').toLowerCase() : '';
+      const isSpecialMatch = special && (
+        inputPass.toLowerCase() === specialPass ||
+        cleanInput === specialPass.replace(/[\s_]/g, '-') ||
+        cleanInput === 'fsa-polyu-pass' ||
+        cleanInput === 'fsa-polyu-pas'
+      );
+
+      // Master check: If user typed fsa-polyu-pass or fsa-polyu-pas
+      const isFsaDirect = (
+        cleanInput === 'fsa-polyu-pass' ||
+        cleanInput === 'fsa-polyu-pas' ||
+        inputPass.toLowerCase() === 'fsa-polyu-pass'
+      );
+
+      // Standard target password check or feudadmin fallback
+      const isTargetMatch = (
+        inputPass === targetPass ||
+        cleanInput === targetPass.toLowerCase() ||
+        inputPass.toLowerCase() === 'feudadmin'
+      );
+
+      if (isSpecialMatch || isFsaDirect || isTargetMatch) {
+        // If unlocking via FSA credentials, guarantee roomCode is FSA-POLYU
+        if (isFsaDirect || (special && special.code === 'FSA-POLYU')) {
+          state.roomCode = 'FSA-POLYU';
+          if (roomCodeInput) roomCodeInput.value = 'FSA-POLYU';
+          updateSpecialRoomState('FSA-POLYU');
+          sessionStorage.setItem('feud_admin_auth_FSA-POLYU', 'true');
+        }
+
         sessionStorage.setItem('feud_admin_auth', 'true');
-        if (special) {
-          sessionStorage.setItem(`feud_admin_auth_${special.code}`, 'true');
+        const activeSpecial = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
+        if (activeSpecial) {
+          sessionStorage.setItem(`feud_admin_auth_${activeSpecial.code}`, 'true');
         }
         if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
         if (authErrorMsg) authErrorMsg.style.display = 'none';
         adminPasswordAuthInput.value = '';
+        renderUI();
+        broadcastState();
       } else {
         if (authErrorMsg) authErrorMsg.style.display = 'block';
         adminPasswordAuthInput.focus();

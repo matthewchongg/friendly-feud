@@ -176,8 +176,27 @@ class SyncEngine {
       this.peer.on('error', (err) => {
         console.warn('[Host] PeerJS notice:', err);
         if (err.type === 'unavailable-id') {
-          // The ID is occupied on the signaling server: generate fresh code to guarantee unused
           this.isOnline = false;
+
+          // Never auto-switch a special designated event room!
+          const isSpecial = (typeof window !== 'undefined' && typeof window.getSpecialRoomConfig === 'function' && window.getSpecialRoomConfig(this.roomCode)) || (this.roomCode === 'FSA-POLYU');
+          if (isSpecial) {
+            console.warn(`[Host] Special event room "${this.roomCode}" is currently registered on PeerJS cloud. Reclaiming slot in 1.8s...`);
+            if (this.statusCallback) {
+              this.statusCallback({
+                status: 'connecting',
+                roomCode: this.roomCode,
+                message: `Claiming event room "${this.roomCode}" on server...`
+              });
+            }
+            if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = setTimeout(() => {
+              this.initHostPeer(this.roomCode, this.statusCallback);
+            }, 1800);
+            return;
+          }
+
+          // Normal room auto-collision switch
           const freshCode = this.generateRoomCode();
           console.warn(`[Host] Room "${this.roomCode}" is in use. Auto-switching to fresh unused code "${freshCode}"...`);
           this.roomCode = freshCode;
@@ -188,6 +207,7 @@ class SyncEngine {
               message: `Room was in use. Auto-switching to unused code "${this.roomCode}"...`
             });
           }
+          if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
           this.reconnectTimer = setTimeout(() => {
             this.initHostPeer(this.roomCode, this.statusCallback);
           }, 350);

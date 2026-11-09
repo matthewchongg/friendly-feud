@@ -796,13 +796,24 @@
       <div class="auth-lock-icon" style="font-size:3rem;margin-bottom:12px;">🔒</div>
       <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--gold-primary);margin-bottom:8px;">Host Panel Protected</h2>
       <p style="color:var(--text-muted);font-size:0.92rem;margin-bottom:20px;line-height:1.5;">Enter the Admin Password to supervise this Family Feud game session.</p>
-      <div class="form-group" style="margin-bottom:14px;">
-        <input type="password" id="adminPasswordAuthInput" class="form-input" placeholder="Enter password..." style="text-align:center;font-size:1.15rem;letter-spacing:1px;padding:12px;">
+      
+      <div class="form-group" style="margin-bottom:14px;position:relative;">
+        <input type="password" id="adminPasswordAuthInput" class="form-input" placeholder="Enter password..." style="text-align:center;font-size:1.15rem;letter-spacing:1px;padding:12px 46px 12px 14px;">
+        <button type="button" id="toggleAuthPassVisibilityBtn" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.15rem;color:var(--text-muted);padding:4px;" title="Show or hide password">👁️</button>
       </div>
+
       <div id="authErrorMsg" style="display:none;color:#ff5252;font-size:0.85rem;margin-bottom:12px;font-weight:700;">Incorrect password. Please try again.</div>
       <button id="adminUnlockBtn" class="btn-primary" style="width:100%;padding:14px;font-size:1.05rem;">Unlock Admin Panel ➔</button>
-      <div id="authOverlayHint" style="margin-top:16px;font-size:0.8rem;color:var(--text-muted);">
+      
+      <div id="authOverlayHint" style="margin-top:14px;font-size:0.8rem;color:var(--text-muted);">
         Default password is: <code id="authOverlayDefaultCode" style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">feudadmin</code>
+      </div>
+
+      <!-- Escape / Room Change Controls -->
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.12);display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+        <button type="button" id="authOverlayExitToStandardBtn" class="icon-btn" style="padding:8px 14px;font-size:0.82rem;border-color:rgba(255,255,255,0.25);" title="Switch away from this room to a standard room with a new code">
+          🎲 Switch to Standard Room
+        </button>
       </div>
     </div>
   </div>
