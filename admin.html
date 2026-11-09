@@ -42,7 +42,7 @@
     <button type="button" class="mobile-nav-btn active" data-target="faceoffCard">⚡ Face-Off</button>
     <button type="button" class="mobile-nav-btn" data-target="boardPlayCard">🎯 Board</button>
     <button type="button" class="mobile-nav-btn" data-target="teamsRosterCard">👥 Rosters</button>
-    <button type="button" class="mobile-nav-btn" data-target="soundFxCard" id="mobileSoundNavBtn" style="display:none;">🔊 Sounds</button>
+    <button type="button" class="mobile-nav-btn" data-target="soundFxCard" id="mobileSoundNavBtn">🔊 Sounds</button>
     <button type="button" class="mobile-nav-btn" id="mobileOpenQuestionsBtn">📚 Questions</button>
   </nav>
 
@@ -375,21 +375,21 @@
         </div>
       </section>
 
-      <!-- Philippine Family Feud Custom Soundboard (Exclusive to FSA-POLYU) -->
-      <section class="control-card" id="soundFxCard" style="display:none;">
+      <!-- Game Show Soundboard (Default on all rooms; Enhanced on FSA-POLYU) -->
+      <section class="control-card" id="soundFxCard">
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:8px;">
             <span>🔊 Soundboard</span>
-            <span id="soundThemeBadge" class="badge badge-gold" style="font-size:0.75rem;">🇵🇭 Philippine Feud Edition</span>
+            <span id="soundThemeBadge" class="badge" style="font-size:0.75rem;">🎹 Classic Game Show SFX</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center;">
-            <button id="sfxThemeToggleBtn" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;border-color:rgba(255,255,255,0.2);" title="Toggle Soundboard Theme (Philippine / Classic)">Theme: 🇵🇭 PH</button>
+            <button id="sfxThemeToggleBtn" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;border-color:rgba(255,255,255,0.2);" title="Toggle Soundboard Theme (Philippine / Classic)">Theme: 🎹 Classic</button>
             <button id="sfxMute" class="icon-btn" style="padding:2px 8px;font-size:0.75rem;">🔊 Sound: On</button>
           </div>
         </div>
 
-        <!-- Theme Song Special Bar (Jeremiah Tiangco - Ano'ng Sabe) -->
-        <div style="background:rgba(246,185,59,0.12);border:1px solid rgba(246,185,59,0.35);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <!-- Philippine Theme Song Row (Jeremiah Tiangco - Ano'ng Sabe - Active on FSA-POLYU) -->
+        <div id="philippineThemeSongRow" style="background:rgba(246,185,59,0.12);border:1px solid rgba(246,185,59,0.35);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:none;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:0.85rem;font-weight:800;color:var(--gold-primary);text-transform:uppercase;font-family:var(--font-display);">
               🎵 Theme Song: Jeremiah Tiangco - "Ano'ng Sabe"
@@ -797,9 +797,11 @@
       <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--gold-primary);margin-bottom:8px;">Host Panel Protected</h2>
       <p style="color:var(--text-muted);font-size:0.92rem;margin-bottom:20px;line-height:1.5;">Enter the Admin Password to supervise this Family Feud game session.</p>
       
-      <div class="form-group" style="margin-bottom:14px;position:relative;">
-        <input type="password" id="adminPasswordAuthInput" class="form-input" placeholder="Enter password..." style="text-align:center;font-size:1.15rem;letter-spacing:1px;padding:12px 46px 12px 14px;">
-        <button type="button" id="toggleAuthPassVisibilityBtn" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.15rem;color:var(--text-muted);padding:4px;" title="Show or hide password">👁️</button>
+      <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:14px;">
+        <input type="password" id="adminPasswordAuthInput" class="form-input" placeholder="Enter password..." style="flex:1;text-align:center;font-size:1.15rem;letter-spacing:1px;padding:12px;">
+        <button type="button" id="toggleAuthPassVisibilityBtn" class="icon-btn" style="padding:0 14px;font-size:0.88rem;background:rgba(255,255,255,0.12);border:1px solid rgba(246,185,59,0.5);color:var(--gold-primary);font-weight:700;border-radius:var(--radius-sm);white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Show or hide password">
+          <span id="authEyeIcon">👁️</span> <span id="authEyeText">Show</span>
+        </button>
       </div>
 
       <div id="authErrorMsg" style="display:none;color:#ff5252;font-size:0.85rem;margin-bottom:12px;font-weight:700;">Incorrect password. Please try again.</div>

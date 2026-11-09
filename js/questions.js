@@ -471,6 +471,13 @@ class QuestionManager {
           if (!parsed.some(f => f.id === 'default')) {
             parsed.unshift({ id: 'default', name: 'Default', icon: '📁', description: 'Standard Game Show Questions' });
           }
+          if (presetFolders && Array.isArray(presetFolders)) {
+            presetFolders.forEach(pf => {
+              if (!parsed.some(f => f.id === pf.id)) {
+                parsed.push({ ...pf });
+              }
+            });
+          }
           return parsed;
         }
       }
@@ -478,16 +485,19 @@ class QuestionManager {
       console.warn('Failed to load folders from storage:', e);
     }
 
-    if (presetFolders && Array.isArray(presetFolders) && presetFolders.length > 0) {
-      const cloned = JSON.parse(JSON.stringify(presetFolders));
-      this.folders = cloned;
-      this.saveFolders();
-      return cloned;
-    }
-
-    return [
+    const initial = [
       { id: 'default', name: 'Default', icon: '📁', description: 'Standard Game Show Questions' }
     ];
+    if (presetFolders && Array.isArray(presetFolders)) {
+      presetFolders.forEach(pf => {
+        if (!initial.some(f => f.id === pf.id)) {
+          initial.push({ ...pf });
+        }
+      });
+    }
+    this.folders = initial;
+    this.saveFolders();
+    return initial;
   }
 
   saveFolders() {
@@ -563,12 +573,19 @@ class QuestionManager {
             if (!q.folderId) q.folderId = 'default';
           });
 
-          // Only merge DEFAULT_QUESTIONS if we are in standard scope
-          if (!this.currentScope) {
-            const existingIds = new Set(parsed.map(q => q.id));
-            DEFAULT_QUESTIONS.forEach(defQ => {
-              if (!existingIds.has(defQ.id)) {
-                parsed.push({ ...defQ, folderId: 'default' });
+          // ALWAYS ensure DEFAULT_QUESTIONS are present (never remove them in special rooms!)
+          const existingIds = new Set(parsed.map(q => q.id));
+          DEFAULT_QUESTIONS.forEach(defQ => {
+            if (!existingIds.has(defQ.id)) {
+              parsed.push({ ...defQ, folderId: 'default' });
+            }
+          });
+
+          // If preset questions exist for this scope (e.g. FSA-POLYU), ensure they are also present
+          if (presetQuestions && Array.isArray(presetQuestions)) {
+            presetQuestions.forEach(pq => {
+              if (!existingIds.has(pq.id)) {
+                parsed.push({ ...pq });
               }
             });
           }
@@ -580,15 +597,29 @@ class QuestionManager {
       console.warn('Failed to load custom questions from storage:', e);
     }
 
-    // If preset questions are provided for this scope (e.g. FSA-POLYU)
-    if (presetQuestions && Array.isArray(presetQuestions) && presetQuestions.length > 0) {
-      const cloned = JSON.parse(JSON.stringify(presetQuestions));
-      this.questions = cloned;
-      this.saveQuestions();
-      return cloned;
+    // Initial load for this scope: Combine preset questions AND default questions!
+    const combined = [];
+    const ids = new Set();
+
+    if (presetQuestions && Array.isArray(presetQuestions)) {
+      presetQuestions.forEach(q => {
+        if (!ids.has(q.id)) {
+          ids.add(q.id);
+          combined.push({ ...q });
+        }
+      });
     }
 
-    return JSON.parse(JSON.stringify(DEFAULT_QUESTIONS)).map(q => ({ ...q, folderId: 'default' }));
+    DEFAULT_QUESTIONS.forEach(defQ => {
+      if (!ids.has(defQ.id)) {
+        ids.add(defQ.id);
+        combined.push({ ...defQ, folderId: 'default' });
+      }
+    });
+
+    this.questions = combined;
+    this.saveQuestions();
+    return combined;
   }
 
   saveQuestions() {
@@ -679,11 +710,30 @@ class QuestionManager {
     if (this.currentScope && typeof window.getSpecialRoomConfig === 'function') {
       const special = window.getSpecialRoomConfig(this.currentScope);
       if (special) {
-        this.folders = JSON.parse(JSON.stringify(special.folders || [
-          { id: 'default', name: 'Default', icon: '📁', description: 'Standard Game Show Questions' }
-        ]));
+        const specialFolders = JSON.parse(JSON.stringify(special.folders || []));
+        if (!specialFolders.some(f => f.id === 'default')) {
+          specialFolders.push({ id: 'default', name: 'Default Feud', icon: '📁', description: 'Standard Survey Questions' });
+        }
+        this.folders = specialFolders;
         this.saveFolders();
-        this.questions = JSON.parse(JSON.stringify(special.questions || DEFAULT_QUESTIONS));
+
+        const combined = [];
+        const ids = new Set();
+        if (special.questions && Array.isArray(special.questions)) {
+          special.questions.forEach(q => {
+            if (!ids.has(q.id)) {
+              ids.add(q.id);
+              combined.push({ ...q });
+            }
+          });
+        }
+        DEFAULT_QUESTIONS.forEach(defQ => {
+          if (!ids.has(defQ.id)) {
+            ids.add(defQ.id);
+            combined.push({ ...defQ, folderId: 'default' });
+          }
+        });
+        this.questions = combined;
         this.saveQuestions();
         return this.questions;
       }

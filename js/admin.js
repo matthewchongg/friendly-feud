@@ -234,28 +234,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Special Event Room Scoping & Soundboard Exclusivity ---
   function updateSpecialRoomState(code) {
     const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(code) : null;
-    if (special && special.enableSoundboard) {
-      if (soundFxCard) soundFxCard.style.display = 'block';
-      if (mobileSoundNavBtn) mobileSoundNavBtn.style.display = 'inline-flex';
-      sound.setTheme('philippines');
-    } else {
-      if (soundFxCard) soundFxCard.style.display = 'none';
-      if (mobileSoundNavBtn) mobileSoundNavBtn.style.display = 'none';
-      sound.setTheme('classic');
-      if (soundFxCard && soundFxCard.classList.contains('active-card')) {
-        document.querySelectorAll('.control-card').forEach(c => c.classList.remove('active-card'));
-        const defaultCard = document.getElementById('faceoffCard');
-        if (defaultCard) defaultCard.classList.add('active-card');
-        document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
-        const defaultNavBtn = document.querySelector('.mobile-nav-btn[data-target="faceoffCard"]');
-        if (defaultNavBtn) defaultNavBtn.classList.add('active');
-      }
+
+    // Soundboard card and mobile nav button are ALWAYS visible across all rooms (classic & special)
+    if (soundFxCard) soundFxCard.style.display = 'block';
+    if (mobileSoundNavBtn) mobileSoundNavBtn.style.display = 'inline-flex';
+
+    // Philippine Theme Song Track (Jeremiah Tiangco - "Ano'ng Sabe") is exclusive to FSA-POLYU
+    const philippineThemeSongRow = document.getElementById('philippineThemeSongRow');
+    if (philippineThemeSongRow) {
+      philippineThemeSongRow.style.display = special ? 'flex' : 'none';
     }
 
-    // Scoped Question Database Isolation
     if (special) {
+      sound.setTheme('philippines');
+      if (soundThemeBadge) {
+        soundThemeBadge.textContent = '🇵🇭 Philippine Feud Edition';
+        soundThemeBadge.className = 'badge badge-gold';
+      }
+      if (sfxThemeToggleBtn) sfxThemeToggleBtn.textContent = 'Theme: 🇵🇭 PH';
       qManager.setScope(special.code, special.questions, special.folders);
     } else {
+      sound.setTheme('classic');
+      if (soundThemeBadge) {
+        soundThemeBadge.textContent = '🎹 Classic Game Show SFX';
+        soundThemeBadge.className = 'badge';
+      }
+      if (sfxThemeToggleBtn) sfxThemeToggleBtn.textContent = 'Theme: 🎹 Classic';
       qManager.setScope(null);
     }
 
@@ -1317,7 +1321,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Room Setup & Popouts ---
   if (setRoomBtn) {
     setRoomBtn.addEventListener('click', () => {
-      const newCode = (roomCodeInput.value || generateRandomRoomCode()).toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+      const inputVal = (roomCodeInput.value || '').toUpperCase().trim().replace(/[^A-Z0-9_-]/g, '');
+      const newCode = inputVal || generateRandomRoomCode();
+      const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(newCode) : null;
+
+      if (special) {
+        state.roomCode = special.code;
+        if (roomCodeInput) roomCodeInput.value = special.code;
+        const isAuth = sessionStorage.getItem(`feud_admin_auth_${special.code}`) === 'true';
+
+        if (isAuth) {
+          initRoom(special.code);
+          broadcastState();
+          renderUI();
+        } else {
+          updateAuthOverlayHint();
+          if (adminAuthOverlay) adminAuthOverlay.style.display = 'flex';
+          if (adminPasswordAuthInput) {
+            adminPasswordAuthInput.value = '';
+            setTimeout(() => adminPasswordAuthInput.focus(), 100);
+          }
+        }
+        return;
+      }
+
       state.roomCode = newCode;
       initRoom(newCode);
       broadcastState();
@@ -1989,7 +2016,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const special = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
     if (authOverlayHint) {
       if (special) {
-        authOverlayHint.innerHTML = `<span style="color:var(--text-muted);font-style:italic;">🔒 Protected Event Room. Enter admin password to unlock.</span>`;
+        authOverlayHint.innerHTML = `<span style="color:var(--text-muted);font-style:italic;">🔒 Protected Event Room: <strong style="color:var(--gold-primary);">${special.code}</strong>. Enter admin password to unlock.</span>`;
       } else {
         authOverlayHint.innerHTML = `Default password is: <code style="color:var(--gold-primary);font-weight:800;background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">feudadmin</code>`;
       }
@@ -2100,11 +2127,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Eye button to show/hide password on the lock overlay
   const toggleAuthPassVisibilityBtn = document.getElementById('toggleAuthPassVisibilityBtn');
+  const authEyeIcon = document.getElementById('authEyeIcon');
+  const authEyeText = document.getElementById('authEyeText');
   if (toggleAuthPassVisibilityBtn && adminPasswordAuthInput) {
     toggleAuthPassVisibilityBtn.addEventListener('click', () => {
       const isPass = adminPasswordAuthInput.type === 'password';
       adminPasswordAuthInput.type = isPass ? 'text' : 'password';
-      toggleAuthPassVisibilityBtn.textContent = isPass ? '🔒' : '👁️';
+      if (authEyeIcon) authEyeIcon.textContent = isPass ? '🔒' : '👁️';
+      if (authEyeText) authEyeText.textContent = isPass ? 'Hide' : 'Show';
       adminPasswordAuthInput.focus();
     });
   }
@@ -2157,19 +2187,17 @@ document.addEventListener('DOMContentLoaded', () => {
       );
 
       if (isSpecialMatch || isFsaDirect || isTargetMatch) {
-        // If unlocking via FSA credentials, guarantee roomCode is FSA-POLYU
         if (isFsaDirect || (special && special.code === 'FSA-POLYU')) {
+          sessionStorage.setItem('feud_admin_auth_FSA-POLYU', 'true');
+          sessionStorage.setItem('feud_admin_auth', 'true');
           state.roomCode = 'FSA-POLYU';
           if (roomCodeInput) roomCodeInput.value = 'FSA-POLYU';
-          updateSpecialRoomState('FSA-POLYU');
-          sessionStorage.setItem('feud_admin_auth_FSA-POLYU', 'true');
+          initRoom('FSA-POLYU');
+        } else {
+          sessionStorage.setItem('feud_admin_auth', 'true');
+          initRoom(state.roomCode);
         }
 
-        sessionStorage.setItem('feud_admin_auth', 'true');
-        const activeSpecial = window.getSpecialRoomConfig ? window.getSpecialRoomConfig(state.roomCode) : null;
-        if (activeSpecial) {
-          sessionStorage.setItem(`feud_admin_auth_${activeSpecial.code}`, 'true');
-        }
         if (adminAuthOverlay) adminAuthOverlay.style.display = 'none';
         if (authErrorMsg) authErrorMsg.style.display = 'none';
         adminPasswordAuthInput.value = '';
