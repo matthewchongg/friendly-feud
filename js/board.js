@@ -283,8 +283,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     strikesOverlayEl.classList.add('active');
 
-    // Single wrong buzzer sound for strikes (no repeats)
-    sound.playStrike();
+    // Triplicate wrong buzzer sound on 3rd strike (XXX), single wrong buzzer on X/XX
+    if (count >= 3) {
+      sound.playTripleStrike();
+    } else {
+      sound.playStrike();
+    }
 
     setTimeout(() => {
       strikesOverlayEl.classList.remove('active');

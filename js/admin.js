@@ -1253,9 +1253,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Strikes Supervisor ---
   function applyStrike(count) {
     state.strikes = count;
-    // Play single wrong buzzer sound across all strikes (no repeats)
-    sound.playStrike();
-    sync.broadcast('PLAY_SOUND', { sound: 'STRIKE' });
+    if (count >= 3) {
+      sound.playTripleStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'TRIPLE_STRIKE' });
+    } else {
+      sound.playStrike();
+      sync.broadcast('PLAY_SOUND', { sound: 'STRIKE' });
+    }
     sync.broadcast('SHOW_STRIKE', { count: count });
 
     if (state.strikes >= 3 && state.controllingTeam) {

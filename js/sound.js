@@ -15,6 +15,7 @@ class SoundEngine {
     this.hasInteracted = false;
     this.soundTheme = 'philippines'; // 'philippines' | 'classic'
     this.themeAudio = null;
+    this.themeVolume = 0.425; // 50% reduction from previous 0.85
     this.isThemePlaying = false;
     this.onThemeStateChange = null;
 
@@ -94,7 +95,8 @@ class SoundEngine {
     try {
       const src = this.audioFiles[key];
       if (!src) return null;
-      const audio = new Audio(src);
+      const cached = this.preloaded && this.preloaded[key];
+      const audio = cached ? cached.cloneNode(true) : new Audio(src);
       audio.volume = Math.max(0, Math.min(1, volume));
       const p = audio.play();
       if (p !== undefined) {
@@ -130,7 +132,7 @@ class SoundEngine {
     this.init();
     try {
       this.themeAudio = new Audio(this.audioFiles.theme);
-      this.themeAudio.volume = 0.85;
+      this.themeAudio.volume = this.themeVolume;
       this.themeAudio.addEventListener('ended', () => {
         this.isThemePlaying = false;
         if (typeof this.onThemeStateChange === 'function') this.onThemeStateChange(false);
@@ -176,7 +178,7 @@ class SoundEngine {
       return;
     }
     if (this._fadeInterval) clearInterval(this._fadeInterval);
-    const startVol = this.themeAudio.volume || 0.85;
+    const startVol = this.themeAudio.volume || this.themeVolume;
     const steps = 30;
     const stepTime = durationMs / steps;
     const volStep = startVol / steps;
@@ -193,7 +195,7 @@ class SoundEngine {
         if (this.themeAudio) {
           try {
             this.themeAudio.pause();
-            this.themeAudio.volume = 0.85; // restore normal volume for next play
+            this.themeAudio.volume = this.themeVolume; // restore normal volume for next play
           } catch(e) {}
         }
         this.isThemePlaying = false;
@@ -249,13 +251,18 @@ class SoundEngine {
 
   /**
    * Triple Strike (XXX)
-   * In Philippine theme: single authentic wrong buzzer
-   * In Classic theme: authentic 3-pulse buzzer
+   * Triplicates the wrong buzzer sound (3 rapid buzzes) across both themes
    */
   playTripleStrike() {
     if (this.muted) return;
+    const nowMs = Date.now();
+    if (this._lastTripleStrikeTime && (nowMs - this._lastTripleStrikeTime < 150)) return;
+    this._lastTripleStrikeTime = nowMs;
+
     if (this.soundTheme === 'philippines') {
-      this.playStrike();
+      this.playAudioFile('strike', 0.95);
+      setTimeout(() => { if (!this.muted) this.playAudioFile('strike', 0.95); }, 280);
+      setTimeout(() => { if (!this.muted) this.playAudioFile('strike', 0.95); }, 560);
     } else {
       this.init();
       if (!this.ctx) return;
